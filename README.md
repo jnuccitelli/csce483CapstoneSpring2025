@@ -12,3 +12,9 @@ leave the virtual environment:
 
 install the requirements:
     pip install -r requirements.txt
+
+
+For Mac : 
+python -m venv 
+source venv/bin/activate
+exit
