@@ -1,3 +1,3 @@
 import subprocess
 
-subprocess.run(["xyce netlist.txt"])
+subprocess.run(["Xyce", "netlist.txt"])
