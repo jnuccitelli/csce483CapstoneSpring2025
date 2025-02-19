@@ -15,6 +15,6 @@ install the requirements:
 
 
 For Mac : 
-python -m venv 
-source venv/bin/activate
-exit
+    python -m venv 
+    source venv/bin/activate
+    exit
