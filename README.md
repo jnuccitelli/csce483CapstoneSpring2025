@@ -18,3 +18,6 @@ Use a venv and the requirements.txt file
     python -m venv \
     source venv/bin/activate \
     exit
+
+**To run the frontend in development:** \
+  python -m frontend.main
