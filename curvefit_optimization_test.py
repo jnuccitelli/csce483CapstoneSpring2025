@@ -146,7 +146,7 @@ def curvefit_optimize(target_curve_fields: list, target_curve_rows: list, netlis
         xyce_parse = parse_xyce_prn_output(local_netlist_file+".prn")
         # TODO: SMART GET INDICES
         X_ARRAY_FROM_XYCE = np.array([float(x[1]) for x in xyce_parse[1]])
-        Y_ARRAY_FROM_XYCE = np.array([float(x[3]) for x in xyce_parse[1]])
+        Y_ARRAY_FROM_XYCE = np.array([float(x[2]) for x in xyce_parse[1]])
         if run_state["first_run"]:
             run_state["first_run"] = False
             run_state["master_x_points"] = X_ARRAY_FROM_XYCE
@@ -156,7 +156,7 @@ def curvefit_optimize(target_curve_fields: list, target_curve_rows: list, netlis
         # TODO: Proper residual? (subrtarct, rms, etc.)
         return ideal_interpolation(run_state["master_x_points"]) - xyce_interpolation(run_state["master_x_points"])
     
-    result = least_squares(residuals, changing_components_values, args=(changing_components,))
+    result = least_squares(residuals, changing_components_values, method='lm', args=(changing_components,))
     print(result.x)
     for i in range(len(changing_components)):
         changing_components[i].value = result.x[i]
@@ -176,22 +176,25 @@ def curvefit_optimize(target_curve_fields: list, target_curve_rows: list, netlis
 ORIG_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlist.txt"
 WRITABLE_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlistCopy.txt"
 
-TARGET_VALUE = 'V(1)'
-TEST_FIELDS = ['TIME', 'V(1)']
-TEST_ROWS = [[0.00000000e+00, 0.00000000e+00],
-        [4.00000000e-04, 5.48760214e+00],
-        [8.00000000e-04, -9.49558233e+00],
-        [1.20000000e-03, 9.55188722e+00],
-        [1.60000000e-03, -6.05842890e+00],
-        [2.00000000e-03, -4.89858805e-15]]
+# TODO: 4 Volts bad, 3 Volts good
+TARGET_VALUE = 'V(2)'
+TEST_FIELDS = ['TIME', 'V(2)']
+TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
+        [4.00000000e-04, 4.00000000e+00],
+        [8.00000000e-04, 4.00000000e+00],
+        [1.20000000e-03, 4.00000000e+00],
+        [1.60000000e-03, 4.00000000e+00],
+        [2.00000000e-03, 4.00000000e+00]]
 
 TEST_NETLIST = Netlist(ORIG_NETLIST_PATH)
 # MAKE VALUES NOT DUMB IN A DUMB DUMB TEMP WAY
 for component in TEST_NETLIST.components:
     if component.value == "1K":
         component.value = 1000
-    if component.value == "0.47u":
+    elif component.value == "0.47u":
         component.value = 0.47e-6
+    else:
+        component.value = float(component.value)
     component.variable = True
 
 
