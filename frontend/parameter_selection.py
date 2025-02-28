@@ -5,6 +5,9 @@ from tkinter import ttk, messagebox, simpledialog
 import re
 from typing import List, Dict, Tuple, Set
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from netlist_parse import Netlist, Component
 
 class ParameterSelectionWindow(tk.Frame):
     def __init__(
@@ -15,6 +18,10 @@ class ParameterSelectionWindow(tk.Frame):
         self.netlist_path = self.controller.get_app_data("netlist_path")
         self.available_parameters: List[str] = []
         self.selected_parameters: List[str] = []
+
+        # K ADDED THIS! CHECK!
+        self.netlist: Netlist = None
+
         # --- Left Frame (Available Parameters) ---
         self.left_frame = ttk.Frame(self)
         self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -100,10 +107,19 @@ class ParameterSelectionWindow(tk.Frame):
     def load_and_parse_parameters(self, netlist_path: str):
         """Loads the netlist and extracts parameters."""
         try:
-            with open(netlist_path, "r") as f:
-                netlist_content = f.read()
-            self.available_parameters = self.extract_parameters(netlist_content)
+            # with open(netlist_path, "r") as f:
+            #     netlist_content = f.read()
+            # self.available_parameters = self.extract_parameters(netlist_content)
+            # self.update_available_listbox()
+
+            # K ADDED THIS-- CHECK!
+            netlist = Netlist(netlist_path)
+            self.available_parameters = []
+            for component in netlist.components:
+                if isinstance(component, Component):
+                    self.available_parameters.append(component)
             self.update_available_listbox()
+
         except FileNotFoundError:
             messagebox.showerror("Error", f"Netlist file not found: {netlist_path}")
         except Exception as e:
@@ -140,6 +156,12 @@ class ParameterSelectionWindow(tk.Frame):
             param = self.available_listbox.get(i)
             if param not in self.selected_parameters:  # prevent duplicates
                 self.selected_parameters.append(param)
+
+                # K ADDED THIS! CHECK!!
+                for component in self.netlist.components:
+                    if component.name == param:
+                        component.variable = True
+                        break
         self.update_selected_listbox()
         if self.selected_parameters:  # enable continue only if parameters are selected.
             self.continue_button.config(state=tk.NORMAL)
@@ -149,6 +171,12 @@ class ParameterSelectionWindow(tk.Frame):
         # Remove in reverse order to avoid index issues after removal
         for i in reversed(selected_indices):
             self.selected_parameters.pop(i)
+
+            # K ADDED THIS! CHECK!!!!
+            for component in self.netlist.components:
+                if component.name == param:
+                    component.variable = False
+                    break
         self.update_selected_listbox()
         if not self.selected_parameters:
             self.continue_button.config(state=tk.DISABLED)
