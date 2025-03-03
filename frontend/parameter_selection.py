@@ -113,11 +113,11 @@ class ParameterSelectionWindow(tk.Frame):
             # self.update_available_listbox()
 
             # K ADDED THIS-- CHECK!
-            netlist = Netlist(netlist_path)
-            self.available_parameters = []
-            for component in netlist.components:
-                if isinstance(component, Component):
-                    self.available_parameters.append(component)
+            self.netlist = Netlist(netlist_path)
+            self.available_parameters = [component.name for component in self.netlist.components if isinstance(component, Component)]
+            # for component in netlist.components:
+            #     if isinstance(component, Component):
+            #         self.available_parameters.append(component.name)
             self.update_available_listbox()
 
         except FileNotFoundError:
@@ -152,16 +152,18 @@ class ParameterSelectionWindow(tk.Frame):
 
     def add_parameters(self):
         selected_indices = self.available_listbox.curselection()
-        for i in selected_indices:
+        for i in sorted(selected_indices, reverse=True): #K ADDED THIS-- SORTED(.., TRUE)
             param = self.available_listbox.get(i)
             if param not in self.selected_parameters:  # prevent duplicates
                 self.selected_parameters.append(param)
+                self.available_parameters.remove(param)
 
                 # K ADDED THIS! CHECK!!
                 for component in self.netlist.components:
                     if component.name == param:
                         component.variable = True
                         break
+            self.available_listbox.delete(i)
         self.update_selected_listbox()
         if self.selected_parameters:  # enable continue only if parameters are selected.
             self.continue_button.config(state=tk.NORMAL)
@@ -170,9 +172,11 @@ class ParameterSelectionWindow(tk.Frame):
         selected_indices = self.selected_listbox.curselection()
         # Remove in reverse order to avoid index issues after removal
         for i in reversed(selected_indices):
-            self.selected_parameters.pop(i)
 
             # K ADDED THIS! CHECK!!!!
+            param = self.selected_parameters.pop(i)
+            self.available_parameters.append(param)
+            self.available_listbox.insert(tk.END, param)
             for component in self.netlist.components:
                 if component.name == param:
                     component.variable = False
