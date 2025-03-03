@@ -1,7 +1,9 @@
 import tkinter as tk
 from .netlist_uploader import NetlistUploaderWindow
 from .parameter_selection import ParameterSelectionWindow
-from .optimization_settings import OptimizationSettingsWindow  # Import the new window
+from .optimization_settings.optimization_settings_window import (
+    OptimizationSettingsWindow,
+)
 from typing import Dict, Any, Optional
 
 
