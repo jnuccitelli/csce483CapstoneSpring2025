@@ -1,8 +1,141 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 import re
 import math
+import ast
+
+
+class ExpressionEvaluator:
+    """
+    Handles the safe evaluation of mathematical expressions with support for
+    variable substitution.
+    """
+
+    _allowed_names: Dict[str, Any] = {
+        "sin": math.sin,
+        "cos": math.cos,
+        "tan": math.tan,
+        "sqrt": math.sqrt,
+        "log": math.log,
+        "exp": math.exp,
+        "pi": math.pi,
+        "e": math.e,
+    }
+
+    def __init__(self, allowed_variables: List[str] = None) -> None:
+        if allowed_variables is None:
+            self.allowed_variables = []
+        else:
+            self.allowed_variables = allowed_variables
+
+    def evaluate(self, expression: str, variables: Dict[str, float]) -> float:
+        """
+        Safely evaluates a mathematical expression, substituting variables.
+
+        Args:
+            expression: The expression string.
+            variables:  A dictionary mapping variable names to their values.
+
+        Returns:
+            The result of the expression.
+
+        Raises:
+            ValueError: If the expression is invalid or contains disallowed
+                names.
+        """
+        # Check if the expression contains only allowed characters and names
+        allowed_chars_pattern = r"^[a-zA-Z0-9+\-*/().\s]+$"
+        if not re.match(allowed_chars_pattern, expression):
+            raise ValueError("Invalid characters in expression.")
+        # Validate the expression using AST parsing for security
+        try:
+            parsed_expression = ast.parse(expression, mode="eval")
+            for node in ast.walk(parsed_expression):
+                if isinstance(node, ast.Name):
+                    if (
+                        node.id not in self._allowed_names
+                        and node.id not in self.allowed_variables
+                    ):
+                        raise ValueError(f"Invalid name in expression: {node.id}")
+                elif isinstance(node, ast.Call):
+                    if (
+                        not isinstance(node.func, ast.Name)
+                        or node.func.id not in self._allowed_names
+                    ):
+                        raise ValueError(
+                            f"Invalid function call in expression: {node.func.id if isinstance(node.func, ast.Name) else 'Unknown'}"
+                        )  # type: ignore
+        except SyntaxError as e:
+            raise ValueError(f"Syntax error in expression: {e}") from e
+        # Create safe namespace
+        safe_namespace = {
+            **self._allowed_names,
+            **{
+                var: variables[var]
+                for var in variables
+                if var in self.allowed_variables
+            },
+        }
+        # Evaluate
+        try:
+            compiled_expression = compile(parsed_expression, "<string>", "eval")
+            result = eval(compiled_expression, safe_namespace)
+            return float(result)
+        except (TypeError, NameError, AttributeError) as e:
+            raise ValueError(f"Evaluation error: {e}") from e
+        except Exception as e:
+            raise ValueError(f"Unexpected error in expression evaluation: {e}") from e
+
+    def validate_expression(self, expression: str) -> Tuple[bool, List[str]]:
+        """
+        Validates a mathematical expression, checking for allowed characters,
+        functions, and variables.
+
+        Args:
+            expression: The expression string to validate.
+
+        Returns:
+            A tuple: (is_valid, used_variables).
+            - is_valid: True if the expression is valid, False otherwise.
+            - used_variables: A list of variable names found in the expression.
+
+        Raises:
+            Nothing, return type used.
+        """
+        # Check for allowed characters
+        allowed_chars_pattern = r"^[a-zA-Z0-9+\-*/().\s=><]+$"
+        if not re.match(allowed_chars_pattern, expression):
+            return False, []
+
+        # Extract potential variable names
+        potential_variables = re.findall(r"[a-zA-Z][a-zA-Z0-9]*", expression)
+        used_variables = []
+
+        # Validate using AST parsing
+        try:
+            parsed_expression = ast.parse(expression, mode="eval")
+            for node in ast.walk(parsed_expression):
+                if isinstance(node, ast.Name):
+                    # Check if it's a valid variable or allowed function
+                    if (
+                        node.id not in self._allowed_names
+                        and node.id not in self.allowed_variables
+                    ):
+                        return False, []  # Invalid variable name
+                    if node.id in potential_variables:
+                        used_variables.append(node.id)
+                elif isinstance(node, ast.Call):
+                    # Check if it's an allowed function
+                    if (
+                        not isinstance(node.func, ast.Name)
+                        or node.func.id not in self._allowed_names
+                    ):
+                        return False, []  # Invalid function call
+        except SyntaxError:
+            return False, []  # Invalid syntax
+
+        return True, used_variables
 
 
 class OptimizationSettingsWindow(tk.Frame):
@@ -11,6 +144,7 @@ class OptimizationSettingsWindow(tk.Frame):
         self.controller = controller
         self.selected_parameters = self.controller.get_app_data("selected_parameters")
         self.constraints: List[dict] = []
+        self.evaluator = ExpressionEvaluator(self.selected_parameters)
 
         # --- Main Layout Frame ---
         main_frame = ttk.Frame(self)
@@ -153,17 +287,17 @@ class OptimizationSettingsWindow(tk.Frame):
         constraints_label.grid(row=3, column=0, sticky=tk.W, pady=5)
 
         self.constraints_table = ttk.Treeview(
-            main_frame, columns=("Parameter", "Type", "Value"), show="headings"
+            main_frame, columns=("Left", "Operator", "Right"), show="headings"
         )
-        self.constraints_table.heading("Parameter", text="Parameter")
-        self.constraints_table.heading("Type", text="Type")
-        self.constraints_table.heading("Value", text="Value")
+        self.constraints_table.heading("Left", text="Left")
+        self.constraints_table.heading("Operator", text="Operator")
+        self.constraints_table.heading("Right", text="Right")
         self.constraints_table.grid(
             row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5
         )
-        self.constraints_table.column("Parameter", width=100)
-        self.constraints_table.column("Type", width=50)
-        self.constraints_table.column("Value", width=100)
+        self.constraints_table.column("Left", width=100)
+        self.constraints_table.column("Operator", width=50)
+        self.constraints_table.column("Right", width=100)
 
         # --- Add Constraint Button ---
         add_constraint_button = ttk.Button(
@@ -231,20 +365,15 @@ class OptimizationSettingsWindow(tk.Frame):
 
     def add_constraint(self, constraint: dict):
         self.constraints.append(constraint)
-        if "type" not in constraint:
-            self.constraints_table.insert(
-                "", tk.END, values=("Custom", "", constraint["expression"])
-            )
-        else:
-            self.constraints_table.insert(
-                "",
-                tk.END,
-                values=(
-                    constraint["parameter"],
-                    constraint["type"],
-                    constraint["value"],
-                ),
-            )
+        self.constraints_table.insert(
+            "",
+            tk.END,
+            values=(
+                constraint["left"],
+                constraint["operator"],
+                constraint["right"],
+            ),
+        )
 
     def remove_constraint(self):
         selected_items = self.constraints_table.selection()
@@ -335,186 +464,92 @@ class AddConstraintDialog(tk.Toplevel):
         super().__init__(parent)
         self.title("Add Constraint")
         self.parameters = parameters
-        self.constraint = None
-        self.is_custom = tk.BooleanVar(value=False)
+        self.constraint: Optional[Dict[str, str]] = None  # Use Optional for clarity
+        self.evaluator = ExpressionEvaluator(parameters)
 
-        # --- Constraint Type Frame (Radio Buttons) ---
-        constraint_type_frame = ttk.Frame(self)
-        constraint_type_frame.pack(pady=5)
+        # --- Left Expression ---
+        left_frame = ttk.Frame(self)
+        left_frame.pack(side=tk.LEFT, padx=5, pady=5)
+        left_label = ttk.Label(left_frame, text="Left:")
+        left_label.pack()
+        self.left_var = tk.StringVar()
+        left_entry = ttk.Entry(left_frame, textvariable=self.left_var, width=15)
+        left_entry.pack(side=tk.LEFT)
 
-        standard_radio = ttk.Radiobutton(
-            constraint_type_frame,
-            text="Standard Constraint",
-            variable=self.is_custom,
-            value=False,
-            command=self.update_ui,
-        )
-        standard_radio.pack(side=tk.LEFT, padx=5)
-        custom_radio = ttk.Radiobutton(
-            constraint_type_frame,
-            text="Custom Constraint",
-            variable=self.is_custom,
-            value=True,
-            command=self.update_ui,
-        )
-        custom_radio.pack(side=tk.LEFT, padx=5)
+        # --- Operator ---
+        operator_frame = ttk.Frame(self)
+        operator_frame.pack(side=tk.LEFT, padx=5, pady=5)
+        operator_label = ttk.Label(operator_frame, text="Operator:")
+        operator_label.pack()
+        self.operator_var = tk.StringVar(value="=")  # Default to equals
+        operators = ["=", ">=", "<="]
+        for op in operators:
+            op_radio = ttk.Radiobutton(
+                operator_frame, text=op, variable=self.operator_var, value=op
+            )
+            op_radio.pack(anchor=tk.W)  # Left-align radio buttons
 
-        # --- Standard Constraint Widgets ---
-        self.standard_frame = ttk.Frame(self)
-        self.standard_frame.pack(fill=tk.BOTH, expand=True)
-
-        param_label = ttk.Label(self.standard_frame, text="Variable Limit:")
-        param_label.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-
-        self.parameter_var = tk.StringVar(value="Select Parameter")
-        self.parameter_dropdown = ttk.Combobox(
-            self.standard_frame,
-            textvariable=self.parameter_var,
-            values=self.parameters,
-            state="readonly",
-        )
-        self.parameter_dropdown.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
-
-        self.constraint_type_var = tk.StringVar(value="=")
-        self.value_var = tk.StringVar()
-
-        equal_radio = ttk.Radiobutton(
-            self.standard_frame,
-            text="Equal",
-            variable=self.constraint_type_var,
-            value="=",
-        )
-        equal_radio.grid(row=0, column=2, sticky=tk.W, padx=5)
-        lower_radio = ttk.Radiobutton(
-            self.standard_frame,
-            text="Lower Bound",
-            variable=self.constraint_type_var,
-            value=">=",
-        )
-        lower_radio.grid(row=0, column=3, sticky=tk.W, padx=5)
-        upper_radio = ttk.Radiobutton(
-            self.standard_frame,
-            text="Upper Bound",
-            variable=self.constraint_type_var,
-            value="<=",
-        )
-        upper_radio.grid(row=0, column=4, sticky=tk.W, padx=5)
-
-        value_entry = ttk.Entry(self.standard_frame, textvariable=self.value_var)
-        value_entry.grid(row=0, column=5, sticky=tk.W, padx=5, pady=5)
-
-        # --- Custom Constraint Widgets ---
-        self.custom_frame = ttk.Frame(self)
-        # self.custom_frame.pack(fill=tk.BOTH, expand=True)  # Initially hidden
-
-        expression_label = ttk.Label(self.custom_frame, text="Expression:")
-        expression_label.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-
-        self.expression_var = tk.StringVar()
-        expression_entry = ttk.Entry(
-            self.custom_frame, textvariable=self.expression_var, width=40
-        )
-        expression_entry.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+        # --- Right Expression/Value ---
+        right_frame = ttk.Frame(self)
+        right_frame.pack(side=tk.LEFT, padx=5, pady=5)
+        right_label = ttk.Label(right_frame, text="Right:")
+        right_label.pack()
+        self.right_var = tk.StringVar()
+        right_entry = ttk.Entry(right_frame, textvariable=self.right_var, width=15)
+        right_entry.pack(side=tk.LEFT)
 
         # --- OK and Cancel Buttons ---
         button_frame = ttk.Frame(self)
         button_frame.pack(pady=10)
-
         ok_button = ttk.Button(button_frame, text="OK", command=self.on_ok)
         ok_button.pack(side=tk.LEFT, padx=5)
         cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
         cancel_button.pack(side=tk.LEFT, padx=5)
 
-        self.update_ui()  # Initial UI state
-
-    def update_ui(self):
-        if self.is_custom.get():
-            self.standard_frame.pack_forget()
-            self.custom_frame.pack(fill=tk.BOTH, expand=True)
-        else:
-            self.custom_frame.pack_forget()
-            self.standard_frame.pack(fill=tk.BOTH, expand=True)
-
     def on_ok(self):
-        if self.is_custom.get():
-            expression = self.expression_var.get().strip()
-            if not expression:
-                messagebox.showerror("Error", "Please enter an expression.")
-                return
-            if not self.validate_expression(expression):
-                return
-            self.constraint = {"expression": expression}
-        else:
-            parameter = self.parameter_var.get()
-            constraint_type = self.constraint_type_var.get()
-            value = self.value_var.get()
+        left = self.left_var.get().strip()
+        operator = self.operator_var.get()
+        right = self.right_var.get().strip()
 
-            if parameter == "Select Parameter" or not value:
-                messagebox.showerror(
-                    "Error", "Please select a parameter and enter a value."
-                )
-                return
+        # Validate inputs
+        if not left or not operator or not right:
+            messagebox.showerror("Error", "All fields are required.")
+            return
 
-            try:
-                float(value)
-            except ValueError:
-                messagebox.showerror("Error", "Invalid value. Please enter a number.")
-                return
-
-            self.constraint = {
-                "parameter": parameter,
-                "type": constraint_type,
-                "value": value,
-            }
-
+        # Validate expressions
+        if not self.is_valid_input(left):
+            return
+        if not self.is_valid_input(right):
+            return
+        self.constraint = {"left": left, "operator": operator, "right": right}
         self.destroy()
 
     def on_cancel(self):
         self.constraint = None
         self.destroy()
 
-    def validate_expression(self, expression: str) -> bool:
-        """Validates the user-entered expression."""
-        allowed_chars_pattern = r"^[a-zA-Z0-9+\-*/().\s=><]+$"
-        if not re.match(allowed_chars_pattern, expression):
-            messagebox.showerror("Error", "Invalid characters in expression.")
-            return False
+    def is_valid_input(self, input_str: str) -> bool:
+        """Validates an input string as either a valid expression or a number."""
+        # First, try to validate as an expression
+        is_valid_expr, used_vars = self.evaluator.validate_expression(input_str)
+        if is_valid_expr:
+            # Check if all used variables are in the allowed parameters
+            for var in used_vars:
+                if var not in self.parameters:
+                    messagebox.showerror(
+                        "Error",
+                        f"Invalid variable '{var}' in expression.  Must be one of {self.parameters}",
+                    )
+                    return False
+            return True
 
-        potential_components = re.findall(r"[a-zA-Z][a-zA-Z0-9]*", expression)
-        for comp in potential_components:
-            if comp not in self.parameters and comp not in [
-                "pi",
-                "e",
-                "sin",
-                "cos",
-                "tan",
-                "ln",
-            ]:
-                messagebox.showerror("Error", f"Invalid component name: {comp}")
-                return False
-
-        safe_namespace = {
-            "__builtins__": {},
-            "sin": math.sin,
-            "cos": math.cos,
-            "tan": math.tan,
-            "ln": math.log,
-            "pi": math.pi,
-            "e": math.e,
-        }
-        for param in self.parameters:
-            safe_namespace[param] = 1.0
-
+        # If not a valid expression, check if it's a valid number
         try:
-            eval(expression, safe_namespace)
-        except SyntaxError:
-            messagebox.showerror("Error", "Invalid expression syntax.")
+            float(input_str)  # Check if it can be a float
+            return True
+        except ValueError:
+            messagebox.showerror("Error", f"Invalid expression or number: {input_str}")
             return False
-        except Exception as e:
-            messagebox.showerror("Error", f"Invalid expression: {e}")
-            return False
-
-        return True
 
 
 class ExpressionDialog(tk.Toplevel):
@@ -522,25 +557,22 @@ class ExpressionDialog(tk.Toplevel):
         super().__init__(parent)
         self.title("Enter Expression")
         self.parameters = parameters
-        self.expression: Optional[str] = None
+        self.expression = None
+        self.evaluator = ExpressionEvaluator(parameters)
 
-        # --- Expression Input ---
+        # --- Expression Entry ---
         expression_label = ttk.Label(self, text="Expression:")
-        expression_label.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+        expression_label.pack(pady=5)
 
         self.expression_var = tk.StringVar()
-        expression_entry = ttk.Entry(self, textvariable=self.expression_var, width=40)
-        expression_entry.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
-
-        # --- Available Parameters (for reference) ---
-        params_label = ttk.Label(
-            self, text="Available Parameters: " + ", ".join(parameters)
-        )
-        params_label.grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+        expression_entry = ttk.Entry(
+            self, textvariable=self.expression_var, width=40
+        )  # Increased width
+        expression_entry.pack(padx=5, pady=5)
 
         # --- OK and Cancel Buttons ---
         button_frame = ttk.Frame(self)
-        button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        button_frame.pack(pady=10)
 
         ok_button = ttk.Button(button_frame, text="OK", command=self.on_ok)
         ok_button.pack(side=tk.LEFT, padx=5)
@@ -553,74 +585,22 @@ class ExpressionDialog(tk.Toplevel):
             messagebox.showerror("Error", "Please enter an expression.")
             return
 
-        if not self.validate_expression(expression):
+        # Validate expression
+        is_valid, used_vars = self.evaluator.validate_expression(expression)
+        if not is_valid:
+            messagebox.showerror("Error", f"Invalid expression {expression}")
             return
-
+        # Check if all used variables are in the allowed parameters
+        for var in used_vars:
+            if var not in self.parameters:
+                messagebox.showerror(
+                    "Error",
+                    f"Invalid variable '{var}' in expression. Must be one of {self.parameters}",
+                )
+                return
         self.expression = expression
         self.destroy()
 
     def on_cancel(self):
         self.expression = None
         self.destroy()
-
-    def validate_expression(self, expression: str) -> bool:
-        """Validates the user-entered expression (same as before)."""
-        allowed_chars_pattern = r"^[a-zA-Z0-9+\-*/().\s=><]+$"
-        if not re.match(allowed_chars_pattern, expression):
-            messagebox.showerror("Error", "Invalid characters in expression.")
-            return False
-
-        potential_components = re.findall(r"[a-zA-Z][a-zA-Z0-9]*", expression)
-        for comp in potential_components:
-            if comp not in self.parameters and comp not in [
-                "pi",
-                "e",
-                "sin",
-                "cos",
-                "tan",
-                "ln",
-            ]:
-                messagebox.showerror("Error", f"Invalid component name: {comp}")
-                return False
-
-        safe_namespace = {
-            "__builtins__": {},
-            "sin": math.sin,
-            "cos": math.cos,
-            "tan": math.tan,
-            "ln": math.log,
-            "pi": math.pi,
-            "e": math.e,
-        }
-        for param in self.parameters:
-            safe_namespace[param] = 1.0
-
-        try:
-            eval(expression, safe_namespace)
-        except SyntaxError:
-            messagebox.showerror("Error", "Invalid expression syntax.")
-            return False
-        except Exception as e:
-            messagebox.showerror("Error", f"Invalid expression: {e}")
-            return False
-
-        return True
-
-
-def evaluate_expression(expression: str, component_values: Dict[str, float]) -> float:
-    """Evaluates a custom constraint expression (same as before)."""
-    safe_namespace = {
-        "__builtins__": {},
-        "sin": math.sin,
-        "cos": math.cos,
-        "tan": math.tan,
-        "ln": math.log,
-        "pi": math.pi,
-        "e": math.e,
-    }
-    safe_namespace.update(component_values)
-    try:
-        result = eval(expression, safe_namespace)
-        return result
-    except (NameError, SyntaxError, ZeroDivisionError, TypeError) as e:
-        raise ValueError(f"Error evaluating expression: {e}")
