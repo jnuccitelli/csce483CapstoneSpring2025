@@ -1,3 +1,24 @@
+from typing import List, Tuple, Dict, Any, NamedTuple, Optional
+
+
+class XyceError(Exception):
+    """Custom exception for Xyce-related errors."""
+
+    pass
+
+
+class NetlistError(Exception):
+    """Custom exception for netlist parsing and modification errors."""
+
+    pass
+
+
+class CurveFitError(Exception):
+    """Custom exception for curve fitting related errors"""
+
+    pass
+
+
 def parse_xyce_prn_output(prn_filepath: str) -> Tuple[List[str], List[List[float]]]:
     """Parses a Xyce .prn output file.
 
