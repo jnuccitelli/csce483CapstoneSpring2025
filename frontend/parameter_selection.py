@@ -19,7 +19,6 @@ class ParameterSelectionWindow(tk.Frame):
         self.available_parameters: List[str] = []
         self.selected_parameters: List[str] = []
 
-        # K ADDED THIS! CHECK!
         self.netlist: Netlist = None
 
         # --- Left Frame (Available Parameters) ---
@@ -45,6 +44,7 @@ class ParameterSelectionWindow(tk.Frame):
         )
         self.available_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.available_listbox.config(yscrollcommand=self.available_scrollbar.set)
+        
         # --- Buttons Frame (between listboxes) ---
         self.buttons_frame = ttk.Frame(self)
         self.buttons_frame.pack(side=tk.LEFT, padx=5)
@@ -107,17 +107,8 @@ class ParameterSelectionWindow(tk.Frame):
     def load_and_parse_parameters(self, netlist_path: str):
         """Loads the netlist and extracts parameters."""
         try:
-            # with open(netlist_path, "r") as f:
-            #     netlist_content = f.read()
-            # self.available_parameters = self.extract_parameters(netlist_content)
-            # self.update_available_listbox()
-
-            # K ADDED THIS-- CHECK!
             self.netlist = Netlist(netlist_path)
             self.available_parameters = [component.name for component in self.netlist.components if isinstance(component, Component)]
-            # for component in netlist.components:
-            #     if isinstance(component, Component):
-            #         self.available_parameters.append(component.name)
             self.update_available_listbox()
 
         except FileNotFoundError:
@@ -152,13 +143,12 @@ class ParameterSelectionWindow(tk.Frame):
 
     def add_parameters(self):
         selected_indices = self.available_listbox.curselection()
-        for i in sorted(selected_indices, reverse=True): #K ADDED THIS-- SORTED(.., TRUE)
+        for i in sorted(selected_indices, reverse=True):
             param = self.available_listbox.get(i)
             if param not in self.selected_parameters:  # prevent duplicates
                 self.selected_parameters.append(param)
                 self.available_parameters.remove(param)
 
-                # K ADDED THIS! CHECK!!
                 for component in self.netlist.components:
                     if component.name == param:
                         component.variable = True
@@ -172,8 +162,6 @@ class ParameterSelectionWindow(tk.Frame):
         selected_indices = self.selected_listbox.curselection()
         # Remove in reverse order to avoid index issues after removal
         for i in reversed(selected_indices):
-
-            # K ADDED THIS! CHECK!!!!
             param = self.selected_parameters.pop(i)
             self.available_parameters.append(param)
             self.available_listbox.insert(tk.END, param)
