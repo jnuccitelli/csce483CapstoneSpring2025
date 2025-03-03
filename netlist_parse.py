@@ -9,30 +9,60 @@ class Component:
 
 class Netlist:
     def __init__(self, file_path):
-        self.components = self.parse_file(file_path)
+        self.components, self.nodes = self.parse_file(file_path)
         self.file_path = file_path
 
     def parse_file(self, file_path) -> list:
     # Current Behavior: Parses file for RLC values to place into netlist's list. Skips Title Line, Commands, and non RLC components
         components = []
+        nodes = set()
         try:
             with open(file_path,"r") as file:
             #Parsing Logic
                 file.readline()
                 for line in file:
                     values=line.strip().split(" ")
+                    print(values)
                     if(values == [""]):
                         continue
-                    if(values[0][0] != "R" and values[0][0] != "L" and values[0][0] != "C"):
-                        continue
+                    match values[0][0]:
+                        #Prob skipping K, X, @ 
+                        case "A":
+                            nodes.add(values[1])
+                            nodes.add(values[2])
+                            nodes.add(values[3])
+                            nodes.add(values[4])
+                            nodes.add(values[5])
+                            nodes.add(values[6])
+                            nodes.add(values[7])
+                            nodes.add(values[8])
+                        #Case for two node components
+                        case "B" | "C" | "D" | "F" | "H" | "I" | "L" | "R" | "V" | "W":
 ##################### TODO: Need to deal with component value conversions possibly. Just floating right now, but doesn't help for 1K, 31u, etc.#####################
-                    newComponent = Component(values[0],values[0][0],float(values[3]))
-                    components.append(newComponent)
+                            if values[0][0] == "R" or values[0][0] == "L" or values[0][0] == "C":
+                                newComponent = Component(values[0],values[0][0], self.componentValConversion(values[3]))
+                                components.append(newComponent)
+                            nodes.add(values[1])
+                            nodes.add(values[2])
+                        #Case for three node components
+                        case"J" | "Q" | "U" | "Z":
+                            nodes.add(values[1])
+                            nodes.add(values[2])
+                            nodes.add(values[3])
+                        #Case for four node components
+                        case"E" | "G" |"M" | "O" | "S" | "T":
+                            nodes.add(values[1])
+                            nodes.add(values[2])
+                            nodes.add(values[3])
+                            nodes.add(values[4])
+                        case _:
+                            continue
+
         except FileNotFoundError:
             print(f"Error: The file '{file_path}' was not found.")
         except Exception as e:
             print(f"An error occurred: {e}")
-        return components
+        return [components,nodes]
     
     def class_to_file(self, file_path):
     # Current Behavior: Reads in specified file and updates lines matching lines in the netlist class that have been marked as modified with the new value.
@@ -63,49 +93,81 @@ class Netlist:
         except Exception as e:
             print(f"An error occurred: {e}")
 
+    def componentValConversion(self, strVal):
+        data = {
+        'Y': 24,
+        'Z': 21,
+        'E': 18,
+        'P': 15,
+        'T': 12,
+        'G': 9,
+        'M': 6,
+        'k': 3,
+        'K': 3,
+        '': 0,
+        'm': -3,
+        'µ': -6,
+        'u': -6,
+        'n': -9,
+        'p': -12,
+        'f': -15,
+        'a': -18,
+        'z': -21,
+        'y': -24
+        }
+        #print("The last value is: ")
+        #print(strVal[-1])
+        if strVal[-1] in data:
+            baseVal = strVal[:-1]
+            newStr= f"{baseVal}e{data[strVal[-1]]}"
+            return float(newStr)
+        else:
+            return float(strVal)
 # Test Statements
-# myNetlist = Netlist("buck.txt")
-# print("Values pre class to file:")
-# print(myNetlist.components[2].name)
-# print(myNetlist.components[2].type)
-# print(myNetlist.components[2].value)
-# print(myNetlist.components[2].variable)
-# print(myNetlist.components[2].modified)
+myNetlist = Netlist("netlist.txt")
+print("Values pre class to file:")
+print(myNetlist.components[0].name)
+print(myNetlist.components[0].type)
+print(myNetlist.components[0].value)
+print(myNetlist.components[0].variable)
+print(myNetlist.components[0].modified)
 
-# print(type(myNetlist.components[2].name))
-# print(type(myNetlist.components[2].type))
-# print(type(myNetlist.components[2].value))
-# print(type(myNetlist.components[2].variable))
-# print(type(myNetlist.components[2].modified))
+print(type(myNetlist.components[0].name))
+print(type(myNetlist.components[0].type))
+print(type(myNetlist.components[0].value))
+print(type(myNetlist.components[0].variable))
+print(type(myNetlist.components[0].modified))
 
-# print(myNetlist.components[3].name)
-# print(myNetlist.components[3].type)
-# print(myNetlist.components[3].value)
-# print(myNetlist.components[3].variable)
-# print(myNetlist.components[3].modified)
+print(myNetlist.components[1].name)
+print(myNetlist.components[1].type)
+print(myNetlist.components[1].value)
+print(myNetlist.components[1].variable)
+print(myNetlist.components[1].modified)
 
 
-# myNetlist.components[2].modified = True
-# myNetlist.components[2].value = 2021
-# myNetlist.components[3].modified = True
-# myNetlist.components[3].value = 2025
-# myNetlist.class_to_file("buck.txt")
+myNetlist.components[0].modified = True
+myNetlist.components[0].value = 2021
+myNetlist.components[1].modified = True
+myNetlist.components[1].value = 2025
+myNetlist.class_to_file("netlist.txt")
 
-# print("Values post class to file:")
-# print(myNetlist.components[2].name)
-# print(myNetlist.components[2].type)
-# print(myNetlist.components[2].value)
-# print(myNetlist.components[2].variable)
-# print(myNetlist.components[2].modified)
+print("Values post class to file:")
+print(myNetlist.components[0].name)
+print(myNetlist.components[0].type)
+print(myNetlist.components[0].value)
+print(myNetlist.components[0].variable)
+print(myNetlist.components[0].modified)
 
-# print(type(myNetlist.components[2].name))
-# print(type(myNetlist.components[2].type))
-# print(type(myNetlist.components[2].value))
-# print(type(myNetlist.components[2].variable))
-# print(type(myNetlist.components[2].modified))
+print(type(myNetlist.components[0].name))
+print(type(myNetlist.components[0].type))
+print(type(myNetlist.components[0].value))
+print(type(myNetlist.components[0].variable))
+print(type(myNetlist.components[0].modified))
 
-# print(myNetlist.components[3].name)
-# print(myNetlist.components[3].type)
-# print(myNetlist.components[3].value)
-# print(myNetlist.components[3].variable)
-# print(myNetlist.components[3].modified)
+print(myNetlist.components[1].name)
+print(myNetlist.components[1].type)
+print(myNetlist.components[1].value)
+print(myNetlist.components[1].variable)
+print(myNetlist.components[1].modified)
+
+print(myNetlist.nodes)
