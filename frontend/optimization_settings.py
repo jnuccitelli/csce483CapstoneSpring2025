@@ -20,7 +20,10 @@ class OptimizationSettingsWindow(tk.Frame):
         optimization_type_label = ttk.Label(main_frame, text="Optimization Type:")
         optimization_type_label.grid(row=0, column=0, sticky=tk.W, pady=5)
 
-        self.optimization_types = ["Maximize/Minimize", "Curve Fit"]
+        self.optimization_types = [
+            "Maximize/Minimize",
+            "Curve Fit",
+        ]  # Removed expression option
         self.optimization_type_var = tk.StringVar(value="Maximize/Minimize")
         self.optimization_type_dropdown = ttk.Combobox(
             main_frame,
@@ -33,7 +36,7 @@ class OptimizationSettingsWindow(tk.Frame):
             "<<ComboboxSelected>>", self.on_optimization_type_change
         )
 
-        # --- Max/Min Toggle (for Maximize/Minimize) ---
+        # --- Max/Min Toggle ---
         self.max_min_frame = ttk.Frame(main_frame)
         self.max_min_frame.grid(row=0, column=2, sticky=tk.W, pady=5)
 
@@ -47,18 +50,31 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         self.min_radio.pack(side=tk.LEFT)
 
-        # --- Parameter Selection Dropdown (for Maximize/Minimize) ---
-        parameter_label = ttk.Label(main_frame, text="Parameter:")
-        parameter_label.grid(row=1, column=0, sticky=tk.W, pady=5)
+        # --- Parameter Selection and Expression (for Maximize/Minimize) ---
+        param_expr_frame = ttk.Frame(main_frame)  # Frame to hold dropdown and button
+        self.param_expr_frame = param_expr_frame  # Make it an attribute
+        self.parameter_label = ttk.Label(main_frame, text="Parameter:")
+        self.parameter_label.grid(row=1, column=0, sticky=tk.W, pady=5)
 
         self.parameter_var = tk.StringVar(value="Select Parameter")
+        # Keep track of whether an expression is being used
+        self.parameter_expression_var = tk.StringVar(value="")
+
         self.parameter_dropdown = ttk.Combobox(
-            main_frame,
+            param_expr_frame,  # Parent is now the frame
             textvariable=self.parameter_var,
             values=self.selected_parameters,
             state="readonly",
         )
-        self.parameter_dropdown.grid(row=1, column=1, sticky=tk.W, pady=5)
+        self.parameter_dropdown.pack(side=tk.LEFT, padx=5)
+        self.parameter_dropdown.bind("<<ComboboxSelected>>", self.on_parameter_selected)
+
+        expression_button = ttk.Button(
+            param_expr_frame, text="Expr...", command=self.open_expression_dialog
+        )
+        expression_button.pack(side=tk.LEFT)
+
+        param_expr_frame.grid(row=1, column=1, sticky=tk.W, pady=5)  # Place the frame
 
         # --- Iterations Input (for Max/Min) ---
         iterations_label = ttk.Label(main_frame, text="Max Iterations:")
@@ -84,28 +100,53 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         curve_file_label.pack()
 
-        # --- X and Y Parameter Dropdowns (for Curve Fit) ---
+        # --- X and Y Parameter Dropdowns and Expressions (for Curve Fit) ---
         x_param_label = ttk.Label(self.curve_fit_frame, text="X Parameter:")
         x_param_label.pack(side=tk.LEFT, padx=5)
         self.x_parameter_var = tk.StringVar()
+        self.x_parameter_expression_var = tk.StringVar()  # For X expression
+        x_param_frame = ttk.Frame(self.curve_fit_frame)  # frame
         self.x_parameter_dropdown = ttk.Combobox(
-            self.curve_fit_frame,
+            x_param_frame,
             textvariable=self.x_parameter_var,
             values=self.selected_parameters,
             state="readonly",
         )
         self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
+        self.x_parameter_dropdown.bind(
+            "<<ComboboxSelected>>", self.on_x_parameter_selected
+        )
+        x_expression_button = ttk.Button(
+            x_param_frame,
+            text="Expr...",
+            command=lambda: self.open_expression_dialog(is_x=True),
+        )
+        x_expression_button.pack(side=tk.LEFT)
+        x_param_frame.pack(side=tk.LEFT, padx=5)
 
         y_param_label = ttk.Label(self.curve_fit_frame, text="Y Parameter:")
         y_param_label.pack(side=tk.LEFT, padx=5)
         self.y_parameter_var = tk.StringVar()
+        self.y_parameter_expression_var = tk.StringVar()  # For Y expression
+        y_param_frame = ttk.Frame(self.curve_fit_frame)
         self.y_parameter_dropdown = ttk.Combobox(
-            self.curve_fit_frame,
+            y_param_frame,
             textvariable=self.y_parameter_var,
             values=self.selected_parameters,
             state="readonly",
         )
         self.y_parameter_dropdown.pack(side=tk.LEFT, padx=5)
+        self.y_parameter_dropdown.bind(
+            "<<ComboboxSelected>>", self.on_y_parameter_selected
+        )
+
+        y_expression_button = ttk.Button(
+            y_param_frame,
+            text="Expr...",
+            command=lambda: self.open_expression_dialog(is_x=False),
+        )
+        y_expression_button.pack(side=tk.LEFT)
+        y_param_frame.pack(side=tk.LEFT, padx=5)
 
         # --- Constraints Table ---
         constraints_label = ttk.Label(main_frame, text="Constraints:")
@@ -153,16 +194,21 @@ class OptimizationSettingsWindow(tk.Frame):
         if selected_type == "Maximize/Minimize":
             self.curve_fit_frame.grid_remove()
             self.max_min_frame.grid()
-            self.parameter_dropdown.grid()
+            # self.parameter_dropdown.grid()
+            self.param_expr_frame.grid()  # show expression frame
             self.iterations_entry.grid()
-            parameter_label = ttk.Label(self, text="Parameter:")  # Need to remake label
+            # self.expression_frame.grid_remove()
+            self.parameter_label.grid()  # Need to remake label
         elif selected_type == "Curve Fit":
             self.max_min_frame.grid_remove()
-            self.parameter_dropdown.grid_remove()
+            # self.parameter_dropdown.grid_remove()
+            self.param_expr_frame.grid_remove()
             self.iterations_entry.grid_remove()
             self.curve_fit_frame.grid(
                 row=1, column=0, columnspan=3, sticky=tk.W, pady=5
             )
+            # self.expression_frame.grid_remove()
+            self.parameter_label.grid_remove()
 
     def select_curve_file(self):
         file_path = filedialog.askopenfilename(
@@ -214,30 +260,74 @@ class OptimizationSettingsWindow(tk.Frame):
         self.controller.navigate("parameter_selection")
 
     def go_forward(self):
-        optimization_settings = {
-            "optimization_type": self.optimization_type_var.get(),
-            "max_min": self.max_min_var.get()
-            if self.optimization_type_var.get() == "Maximize/Minimize"
-            else None,
-            "parameter": self.parameter_var.get()
-            if self.optimization_type_var.get() == "Maximize/Minimize"
-            else None,
-            "iterations": self.iterations_var.get()
-            if self.optimization_type_var.get() == "Maximize/Minimize"
-            else None,
-            "curve_file": self.curve_file_path_var.get()
-            if self.optimization_type_var.get() == "Curve Fit"
-            else None,
-            "x_parameter": self.x_parameter_var.get()
-            if self.optimization_type_var.get() == "Curve Fit"
-            else None,
-            "y_parameter": self.y_parameter_var.get()
-            if self.optimization_type_var.get() == "Curve Fit"
-            else None,
+        # Collect data based on optimization type
+        optimization_type = self.optimization_type_var.get()
+        optimization_settings: Dict[str, Any] = {
+            "optimization_type": optimization_type,
             "constraints": self.constraints,
         }
+        # Maximize/Minimize
+        if optimization_type == "Maximize/Minimize":
+            optimization_settings["max_min"] = self.max_min_var.get()
+            # Check if an expression is used
+            if self.parameter_expression_var.get():
+                optimization_settings["parameter_expression"] = (
+                    self.parameter_expression_var.get()
+                )
+            else:
+                optimization_settings["parameter"] = self.parameter_var.get()
+
+            optimization_settings["iterations"] = self.iterations_var.get()
+        # Curve Fit
+        elif optimization_type == "Curve Fit":
+            optimization_settings["curve_file"] = self.curve_file_path_var.get()
+            # Check if expressions are used for X and Y
+            if self.x_parameter_expression_var.get():
+                optimization_settings["x_parameter_expression"] = (
+                    self.x_parameter_expression_var.get()
+                )
+            else:
+                optimization_settings["x_parameter"] = self.x_parameter_var.get()
+
+            if self.y_parameter_expression_var.get():
+                optimization_settings["y_parameter_expression"] = (
+                    self.y_parameter_expression_var.get()
+                )
+            else:
+                optimization_settings["y_parameter"] = self.y_parameter_var.get()
+
         self.controller.update_app_data("optimization_settings", optimization_settings)
         print("Continue to next window (implementation needed)...")
+
+    def open_expression_dialog(self, is_x=False):
+        # is_x is used for curve fitting for x and y coordinate expressions
+        dialog = ExpressionDialog(self, self.selected_parameters)
+        self.wait_window(dialog)
+        if dialog.expression:
+            expression = dialog.expression
+            # Maximize/Minimize
+            if hasattr(self, "parameter_expression_var"):
+                self.parameter_expression_var.set(expression)
+                self.parameter_var.set(
+                    f"Expr: {expression}"
+                )  # Show expression in dropdown
+            # Curve fitting
+            if is_x:
+                self.x_parameter_expression_var.set(expression)
+                self.x_parameter_var.set(f"Expr: {expression}")
+            else:
+                self.y_parameter_expression_var.set(expression)
+                self.y_parameter_var.set(f"Expr: {expression}")
+
+    def on_parameter_selected(self, event=None):
+        # Clear the expression if a regular parameter is selected
+        self.parameter_expression_var.set("")
+
+    def on_x_parameter_selected(self, event=None):
+        self.x_parameter_expression_var.set("")
+
+    def on_y_parameter_selected(self, event=None):
+        self.y_parameter_expression_var.set("")
 
 
 class AddConstraintDialog(tk.Toplevel):
@@ -246,7 +336,7 @@ class AddConstraintDialog(tk.Toplevel):
         self.title("Add Constraint")
         self.parameters = parameters
         self.constraint = None
-        self.is_custom = tk.BooleanVar(value=False)  # Track if it's a custom constraint
+        self.is_custom = tk.BooleanVar(value=False)
 
         # --- Constraint Type Frame (Radio Buttons) ---
         constraint_type_frame = ttk.Frame(self)
@@ -338,16 +428,15 @@ class AddConstraintDialog(tk.Toplevel):
         self.update_ui()  # Initial UI state
 
     def update_ui(self):
-        """Updates the UI based on whether it's a standard or custom constraint."""
         if self.is_custom.get():
-            self.standard_frame.pack_forget()  # Hide standard widgets
-            self.custom_frame.pack(fill=tk.BOTH, expand=True)  # Show custom widgets
+            self.standard_frame.pack_forget()
+            self.custom_frame.pack(fill=tk.BOTH, expand=True)
         else:
-            self.custom_frame.pack_forget()  # Hide custom widgets
-            self.standard_frame.pack(fill=tk.BOTH, expand=True)  # Show standard widgets
+            self.custom_frame.pack_forget()
+            self.standard_frame.pack(fill=tk.BOTH, expand=True)
 
     def on_ok(self):
-        if self.is_custom.get():  # Custom constraint
+        if self.is_custom.get():
             expression = self.expression_var.get().strip()
             if not expression:
                 messagebox.showerror("Error", "Please enter an expression.")
@@ -355,7 +444,7 @@ class AddConstraintDialog(tk.Toplevel):
             if not self.validate_expression(expression):
                 return
             self.constraint = {"expression": expression}
-        else:  # Standard constraint
+        else:
             parameter = self.parameter_var.get()
             constraint_type = self.constraint_type_var.get()
             value = self.value_var.get()
@@ -386,14 +475,11 @@ class AddConstraintDialog(tk.Toplevel):
 
     def validate_expression(self, expression: str) -> bool:
         """Validates the user-entered expression."""
-
-        # --- 1. Allowed Characters Check ---
         allowed_chars_pattern = r"^[a-zA-Z0-9+\-*/().\s=><]+$"
         if not re.match(allowed_chars_pattern, expression):
             messagebox.showerror("Error", "Invalid characters in expression.")
             return False
 
-        # --- 2. Component Name Check ---
         potential_components = re.findall(r"[a-zA-Z][a-zA-Z0-9]*", expression)
         for comp in potential_components:
             if comp not in self.parameters and comp not in [
@@ -407,7 +493,96 @@ class AddConstraintDialog(tk.Toplevel):
                 messagebox.showerror("Error", f"Invalid component name: {comp}")
                 return False
 
-        # --- 3. Syntax Check (Safe Eval) ---
+        safe_namespace = {
+            "__builtins__": {},
+            "sin": math.sin,
+            "cos": math.cos,
+            "tan": math.tan,
+            "ln": math.log,
+            "pi": math.pi,
+            "e": math.e,
+        }
+        for param in self.parameters:
+            safe_namespace[param] = 1.0
+
+        try:
+            eval(expression, safe_namespace)
+        except SyntaxError:
+            messagebox.showerror("Error", "Invalid expression syntax.")
+            return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Invalid expression: {e}")
+            return False
+
+        return True
+
+
+class ExpressionDialog(tk.Toplevel):
+    def __init__(self, parent, parameters: List[str]):
+        super().__init__(parent)
+        self.title("Enter Expression")
+        self.parameters = parameters
+        self.expression: Optional[str] = None
+
+        # --- Expression Input ---
+        expression_label = ttk.Label(self, text="Expression:")
+        expression_label.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+
+        self.expression_var = tk.StringVar()
+        expression_entry = ttk.Entry(self, textvariable=self.expression_var, width=40)
+        expression_entry.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+
+        # --- Available Parameters (for reference) ---
+        params_label = ttk.Label(
+            self, text="Available Parameters: " + ", ".join(parameters)
+        )
+        params_label.grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+
+        # --- OK and Cancel Buttons ---
+        button_frame = ttk.Frame(self)
+        button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+
+        ok_button = ttk.Button(button_frame, text="OK", command=self.on_ok)
+        ok_button.pack(side=tk.LEFT, padx=5)
+        cancel_button = ttk.Button(button_frame, text="Cancel", command=self.on_cancel)
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+    def on_ok(self):
+        expression = self.expression_var.get().strip()
+        if not expression:
+            messagebox.showerror("Error", "Please enter an expression.")
+            return
+
+        if not self.validate_expression(expression):
+            return
+
+        self.expression = expression
+        self.destroy()
+
+    def on_cancel(self):
+        self.expression = None
+        self.destroy()
+
+    def validate_expression(self, expression: str) -> bool:
+        """Validates the user-entered expression (same as before)."""
+        allowed_chars_pattern = r"^[a-zA-Z0-9+\-*/().\s=><]+$"
+        if not re.match(allowed_chars_pattern, expression):
+            messagebox.showerror("Error", "Invalid characters in expression.")
+            return False
+
+        potential_components = re.findall(r"[a-zA-Z][a-zA-Z0-9]*", expression)
+        for comp in potential_components:
+            if comp not in self.parameters and comp not in [
+                "pi",
+                "e",
+                "sin",
+                "cos",
+                "tan",
+                "ln",
+            ]:
+                messagebox.showerror("Error", f"Invalid component name: {comp}")
+                return False
+
         safe_namespace = {
             "__builtins__": {},
             "sin": math.sin,
@@ -433,22 +608,9 @@ class AddConstraintDialog(tk.Toplevel):
 
 
 def evaluate_expression(expression: str, component_values: Dict[str, float]) -> float:
-    """
-    Evaluates a custom constraint expression.
-
-    Args:
-        expression: The expression string (e.g., "R2 = (R3 + R4) / 2").
-        component_values: A dictionary mapping component names to their current values.
-
-    Returns:
-        The result of evaluating the expression.
-
-    Raises:
-        ValueError: If the expression is invalid or cannot be evaluated.
-    """
-    # Create a safe namespace for eval
+    """Evaluates a custom constraint expression (same as before)."""
     safe_namespace = {
-        "__builtins__": {},  # Disable built-in functions
+        "__builtins__": {},
         "sin": math.sin,
         "cos": math.cos,
         "tan": math.tan,
@@ -456,9 +618,7 @@ def evaluate_expression(expression: str, component_values: Dict[str, float]) -> 
         "pi": math.pi,
         "e": math.e,
     }
-    # Add component values to the safe namespace
     safe_namespace.update(component_values)
-
     try:
         result = eval(expression, safe_namespace)
         return result
