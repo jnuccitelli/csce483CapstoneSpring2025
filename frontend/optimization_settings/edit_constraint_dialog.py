@@ -63,9 +63,9 @@ class EditConstraintDialog(tk.Toplevel):
             messagebox.showerror("Error", "All fields are required.")
             return
 
-        if not self.is_valid_input(left):
+        if not self.is_valid_input(left):  # Corrected call: self.is_valid_input
             return
-        if not self.is_valid_input(right):
+        if not self.is_valid_input(right):  # Corrected call: self.is_valid_input
             return
 
         # Update the constraint dictionary
@@ -79,4 +79,23 @@ class EditConstraintDialog(tk.Toplevel):
         self.destroy()
 
     def on_cancel(self):
-        print("Something")
+        # Don't change the constraint
+        self.destroy()
+
+    def is_valid_input(self, input_str: str) -> bool:
+        """Validates an input string as either a valid expression or a number."""
+        is_valid_expr, used_vars = self.evaluator.validate_expression(input_str)
+        if is_valid_expr:
+            for var in used_vars:
+                if var not in self.parameters:
+                    messagebox.showerror(
+                        "Error", f"Invalid variable '{var}' in expression."
+                    )
+                    return False
+            return True
+        try:
+            float(input_str)
+            return True
+        except ValueError:
+            messagebox.showerror("Error", f"Invalid expression or number: {input_str}")
+            return False
