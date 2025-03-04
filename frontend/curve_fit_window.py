@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-# sample variable options
+# Sample variable options
 variables = ["Var1", "Var2", "Var3", "Var4"]
 
 class OptimizationGUI:
@@ -52,12 +52,21 @@ class OptimizationGUI:
         self.constraints_list = tk.Listbox(root, height=5, width=50)
         self.constraints_list.grid(row=6, column=0, columnspan=6, padx=5, pady=5)
 
+        # Progress Bar
+        ttk.Label(root, text="Simulation Progress:").grid(row=7, column=0, padx=5, pady=5)
+        self.progress = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
+        self.progress.grid(row=7, column=1, columnspan=3, padx=5, pady=5)
+
+        # Status Label
+        self.status_label = ttk.Label(root, text="Waiting for input...")
+        self.status_label.grid(row=8, column=0, columnspan=6, pady=5)
+
         # Back and Continue Buttons
         self.back_btn = ttk.Button(root, text="Back", command=self.go_back)
-        self.back_btn.grid(row=7, column=0, padx=5, pady=10)
+        self.back_btn.grid(row=9, column=0, padx=5, pady=10)
 
-        self.continue_btn = ttk.Button(root, text="Continue", command=self.run_optimization)
-        self.continue_btn.grid(row=7, column=1, padx=5, pady=10)
+        self.continue_btn = ttk.Button(root, text="Start Optimization", command=self.start_optimization)
+        self.continue_btn.grid(row=9, column=1, padx=5, pady=10)
 
     def add_constraint(self):
         var = self.constraint_var.get()
@@ -72,7 +81,8 @@ class OptimizationGUI:
     def go_back(self):
         messagebox.showinfo("Back", "Returning to the previous step...")
 
-    def run_optimization(self):
+    def start_optimization(self):
+        """ Start the optimization process and update progress. """
         x_axis = self.x_var.get()
         y_axis = self.y_var.get()
         h_line = self.h_line_value.get()
@@ -92,14 +102,27 @@ class OptimizationGUI:
 
         constraints = [self.constraints_list.get(i) for i in range(self.constraints_list.size())]
 
-        # call xyce optimization function
-        messagebox.showinfo("Optimization Started", f"Running curve fit optimization...\n"
-                            f"X-axis: {x_axis}\nY-axis: {y_axis}\n"
-                            f"Horizontal Line: {h_line}\n"
-                            f"Max Iterations: {max_iter}\nTime Limit: {time_limit}\n"
-                            f"Constraints: {constraints}")
+        # Disable UI elements while running
+        self.continue_btn.config(state="disabled")
+        self.status_label.config(text="Running optimization...")
+        self.progress["value"] = 0
 
-# run tkinter App
+        # Simulate optimization in steps
+        self.simulate_progress(0, max_iter or 100)
+
+    def simulate_progress(self, step, max_steps):
+        """ Simulates optimization process by updating progress bar. """
+        if step <= max_steps:
+            self.progress["value"] = (step / max_steps) * 100
+            self.status_label.config(text=f"Running... {step}/{max_steps} simulations completed")
+            self.root.after(100, self.simulate_progress, step + 1, max_steps)
+        else:
+            self.progress["value"] = 100
+            self.status_label.config(text="Optimization complete!")
+            self.continue_btn.config(state="normal")
+            messagebox.showinfo("Optimization Complete", "Curve fitting optimization finished.")
+
+# Run Tkinter App
 root = tk.Tk()
 app = OptimizationGUI(root)
 root.mainloop()
