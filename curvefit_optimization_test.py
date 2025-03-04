@@ -3,23 +3,7 @@ import shutil
 import subprocess
 from scipy.optimize import least_squares
 from scipy.interpolate import interp1d
-
-# TEMPORARY IN HERE FOR DEV PURPOSES
-import csv
-
-# -> Tuple[List[str], List[List[float]]]
-# Delete last line
-def parse_xyce_prn_output(prn_filepath: str):
-    variable_names = []
-    data = []
-    with open(prn_filepath, 'r') as csvfile:
-        csvreader = csv.reader(csvfile)
-        variable_names = next(csvreader)
-        for row in csvreader:
-            data.append(row)
-    # Get rid of last line
-    data.pop()
-    return variable_names, data
+from xyce_parsing_function import parse_xyce_prn_output
 
 class Component:
     def __init__(self, name="", type="", value=0, variable=False, modified=False):
