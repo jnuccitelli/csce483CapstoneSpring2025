@@ -22,7 +22,7 @@ class Netlist:
                 file.readline()
                 for line in file:
                     values=line.strip().split(" ")
-                    print(values)
+                    #print(values)
                     if(values == [""]):
                         continue
                     match values[0][0]:
