@@ -124,50 +124,50 @@ class Netlist:
         else:
             return float(strVal)
 # Test Statements
-myNetlist = Netlist("netlist.txt")
-print("Values pre class to file:")
-print(myNetlist.components[0].name)
-print(myNetlist.components[0].type)
-print(myNetlist.components[0].value)
-print(myNetlist.components[0].variable)
-print(myNetlist.components[0].modified)
+# myNetlist = Netlist("netlist.txt")
+# print("Values pre class to file:")
+# print(myNetlist.components[0].name)
+# print(myNetlist.components[0].type)
+# print(myNetlist.components[0].value)
+# print(myNetlist.components[0].variable)
+# print(myNetlist.components[0].modified)
 
-print(type(myNetlist.components[0].name))
-print(type(myNetlist.components[0].type))
-print(type(myNetlist.components[0].value))
-print(type(myNetlist.components[0].variable))
-print(type(myNetlist.components[0].modified))
+# print(type(myNetlist.components[0].name))
+# print(type(myNetlist.components[0].type))
+# print(type(myNetlist.components[0].value))
+# print(type(myNetlist.components[0].variable))
+# print(type(myNetlist.components[0].modified))
 
-print(myNetlist.components[1].name)
-print(myNetlist.components[1].type)
-print(myNetlist.components[1].value)
-print(myNetlist.components[1].variable)
-print(myNetlist.components[1].modified)
+# print(myNetlist.components[1].name)
+# print(myNetlist.components[1].type)
+# print(myNetlist.components[1].value)
+# print(myNetlist.components[1].variable)
+# print(myNetlist.components[1].modified)
 
 
-myNetlist.components[0].modified = True
-myNetlist.components[0].value = 2021
-myNetlist.components[1].modified = True
-myNetlist.components[1].value = 2025
-myNetlist.class_to_file("netlist.txt")
+# myNetlist.components[0].modified = True
+# myNetlist.components[0].value = 2021
+# myNetlist.components[1].modified = True
+# myNetlist.components[1].value = 2025
+# myNetlist.class_to_file("netlist.txt")
 
-print("Values post class to file:")
-print(myNetlist.components[0].name)
-print(myNetlist.components[0].type)
-print(myNetlist.components[0].value)
-print(myNetlist.components[0].variable)
-print(myNetlist.components[0].modified)
+# print("Values post class to file:")
+# print(myNetlist.components[0].name)
+# print(myNetlist.components[0].type)
+# print(myNetlist.components[0].value)
+# print(myNetlist.components[0].variable)
+# print(myNetlist.components[0].modified)
 
-print(type(myNetlist.components[0].name))
-print(type(myNetlist.components[0].type))
-print(type(myNetlist.components[0].value))
-print(type(myNetlist.components[0].variable))
-print(type(myNetlist.components[0].modified))
+# print(type(myNetlist.components[0].name))
+# print(type(myNetlist.components[0].type))
+# print(type(myNetlist.components[0].value))
+# print(type(myNetlist.components[0].variable))
+# print(type(myNetlist.components[0].modified))
 
-print(myNetlist.components[1].name)
-print(myNetlist.components[1].type)
-print(myNetlist.components[1].value)
-print(myNetlist.components[1].variable)
-print(myNetlist.components[1].modified)
+# print(myNetlist.components[1].name)
+# print(myNetlist.components[1].type)
+# print(myNetlist.components[1].value)
+# print(myNetlist.components[1].variable)
+# print(myNetlist.components[1].modified)
 
-print(myNetlist.nodes)
+# print(myNetlist.nodes)
