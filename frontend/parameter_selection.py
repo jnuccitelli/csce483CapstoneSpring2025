@@ -5,6 +5,9 @@ from tkinter import ttk, messagebox, simpledialog
 import re
 from typing import List, Dict, Tuple, Set
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from netlist_parse import Netlist, Component
 
 class ParameterSelectionWindow(tk.Frame):
     def __init__(
@@ -15,6 +18,9 @@ class ParameterSelectionWindow(tk.Frame):
         self.netlist_path = self.controller.get_app_data("netlist_path")
         self.available_parameters: List[str] = []
         self.selected_parameters: List[str] = []
+
+        self.netlist: Netlist = None
+
         # --- Left Frame (Available Parameters) ---
         self.left_frame = ttk.Frame(self)
         self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -38,6 +44,7 @@ class ParameterSelectionWindow(tk.Frame):
         )
         self.available_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.available_listbox.config(yscrollcommand=self.available_scrollbar.set)
+        
         # --- Buttons Frame (between listboxes) ---
         self.buttons_frame = ttk.Frame(self)
         self.buttons_frame.pack(side=tk.LEFT, padx=5)
@@ -100,10 +107,10 @@ class ParameterSelectionWindow(tk.Frame):
     def load_and_parse_parameters(self, netlist_path: str):
         """Loads the netlist and extracts parameters."""
         try:
-            with open(netlist_path, "r") as f:
-                netlist_content = f.read()
-            self.available_parameters = self.extract_parameters(netlist_content)
+            self.netlist = Netlist(netlist_path)
+            self.available_parameters = [component.name for component in self.netlist.components if isinstance(component, Component)]
             self.update_available_listbox()
+
         except FileNotFoundError:
             messagebox.showerror("Error", f"Netlist file not found: {netlist_path}")
         except Exception as e:
@@ -136,10 +143,17 @@ class ParameterSelectionWindow(tk.Frame):
 
     def add_parameters(self):
         selected_indices = self.available_listbox.curselection()
-        for i in selected_indices:
+        for i in sorted(selected_indices, reverse=True):
             param = self.available_listbox.get(i)
             if param not in self.selected_parameters:  # prevent duplicates
                 self.selected_parameters.append(param)
+                self.available_parameters.remove(param)
+
+                for component in self.netlist.components:
+                    if component.name == param:
+                        component.variable = True
+                        break
+            self.available_listbox.delete(i)
         self.update_selected_listbox()
         if self.selected_parameters:  # enable continue only if parameters are selected.
             self.continue_button.config(state=tk.NORMAL)
@@ -148,7 +162,13 @@ class ParameterSelectionWindow(tk.Frame):
         selected_indices = self.selected_listbox.curselection()
         # Remove in reverse order to avoid index issues after removal
         for i in reversed(selected_indices):
-            self.selected_parameters.pop(i)
+            param = self.selected_parameters.pop(i)
+            self.available_parameters.append(param)
+            self.available_listbox.insert(tk.END, param)
+            for component in self.netlist.components:
+                if component.name == param:
+                    component.variable = False
+                    break
         self.update_selected_listbox()
         if not self.selected_parameters:
             self.continue_button.config(state=tk.DISABLED)
