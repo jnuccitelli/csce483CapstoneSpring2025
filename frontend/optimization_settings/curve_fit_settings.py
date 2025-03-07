@@ -5,9 +5,10 @@ from .expression_dialog import ExpressionDialog
 
 
 class CurveFitSettings(tk.Frame):
-    def __init__(self, parent: tk.Frame, parameters: List[str]):
+    def __init__(self, parent: tk.Frame, parameters: List[str], nodes):
         super().__init__(parent)
         self.parameters = parameters
+        self.nodes = nodes
         self.x_parameter_expression_var = tk.StringVar()
         self.y_parameter_expression_var = tk.StringVar()
 
@@ -29,7 +30,7 @@ class CurveFitSettings(tk.Frame):
         self.x_parameter_dropdown = ttk.Combobox(
             x_param_frame,
             textvariable=self.x_parameter_var,
-            values=self.parameters,
+            values=["t"],
             state="readonly",
         )
         self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
@@ -52,7 +53,7 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_dropdown = ttk.Combobox(
             y_param_frame,
             textvariable=self.y_parameter_var,
-            values=self.parameters,
+            values=[f"V({node})" for node in self.nodes],
             state="readonly",
         )
         self.y_parameter_dropdown.pack(side=tk.LEFT, padx=5)

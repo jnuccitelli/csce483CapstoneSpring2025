@@ -16,6 +16,7 @@ class OptimizationSettingsWindow(tk.Frame):
         self.controller = controller
         self.selected_parameters = self.controller.get_app_data("selected_parameters")
         self.constraints: List[Dict[str, str]] = []
+        self.nodes = self.controller.get_app_data("nodes")
 
         # --- Main Layout Frame ---
         main_frame = ttk.Frame(self)
@@ -44,7 +45,7 @@ class OptimizationSettingsWindow(tk.Frame):
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Initial display
 
-        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters)
+        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes)
         self.curve_fit_settings.grid(
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Corrected row/column
