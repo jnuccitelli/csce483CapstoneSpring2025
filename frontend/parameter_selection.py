@@ -18,6 +18,7 @@ class ParameterSelectionWindow(tk.Frame):
         self.netlist_path = self.controller.get_app_data("netlist_path")
         self.available_parameters: List[str] = []
         self.selected_parameters: List[str] = []
+        self.nodes: set[str] = set()
 
         self.netlist: Netlist = None
 
@@ -109,6 +110,7 @@ class ParameterSelectionWindow(tk.Frame):
         try:
             self.netlist = Netlist(netlist_path)
             self.available_parameters = [component.name for component in self.netlist.components if isinstance(component, Component)]
+            self.nodes = self.netlist.nodes
             self.update_available_listbox()
 
         except FileNotFoundError:
@@ -178,5 +180,6 @@ class ParameterSelectionWindow(tk.Frame):
 
     def go_forward(self):
         self.controller.update_app_data("selected_parameters", self.selected_parameters)
+        self.controller.update_app_data("nodes", self.nodes)
         # Placeholder for now
         self.controller.navigate("optimization_settings")

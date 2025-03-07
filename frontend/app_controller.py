@@ -20,6 +20,7 @@ class AppController:
             "netlist_path": None,
             "selected_parameters": [],
             "optimization_settings": {},  # Added
+            "nodes": set()
         }
         self.show_netlist_uploader()  # Start with the first window
 
