@@ -1,11 +1,13 @@
 # Class Declaration
 class Component:
-    def __init__(self, name="", type="", value=0, variable=False, modified=False):
+    def __init__(self, name="", type="", value=0, variable=False, modified=False, minVal = 0, maxVal = float('inf')):
         self.name = name
         self.type = type
         self.value = value
         self.variable = variable
         self.modified = modified
+        self.minVal = minVal
+        self.maxVal = maxVal
 
 class Netlist:
     def __init__(self, file_path):
