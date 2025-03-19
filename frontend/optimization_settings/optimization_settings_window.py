@@ -126,7 +126,9 @@ class OptimizationSettingsWindow(tk.Frame):
         export_button.pack(side=tk.LEFT, padx=5)
         # --- Optimization Button ---
         optimization_button = ttk.Button(
-            main_frame, text="Start Optimization", command=self.start_optimization
+            main_frame,
+            text="Start Optimization",
+            command=self.start_optimization,  # Connect to controller
         )
         optimization_button.grid(
             row=6, column=0, columnspan=3, sticky=tk.W + tk.E, pady=10
@@ -214,10 +216,11 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.max_min_settings.get_settings())
         elif self.optimization_type_var.get() == "Curve Fit":
             optimization_settings.update(self.curve_fit_settings.get_settings())
-
+        # Put the data into app_data and go to the next screen
         self.controller.update_app_data("optimization_settings", optimization_settings)
-        # print("Continue to next window (implementation needed)...") #Removed old line
-        self.start_optimization()  # Start optimization after setting data.
+        print("optimization settings before moving forward")
+        print(optimization_settings)  # debugging
+        # self.start_optimization()  # Removed. Optimization now started by button.
 
     def import_constraints(self):
         """Imports constraints from a JSON file."""

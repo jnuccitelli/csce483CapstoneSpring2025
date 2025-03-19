@@ -150,11 +150,11 @@ def curvefit_optimize(
     )
 
     # --- 2. Load and Prepare Netlist ---
-    initial_netlist = parse_netlist(netlist_filepath)
+    initial_netlist_components, _ = parse_netlist(netlist_filepath)  # Get components
     # Create a dictionary mapping component *names* to their *initial values*.
     initial_values: Dict[str, str] = {
         comp.name: comp.value
-        for comp in initial_netlist
+        for comp in initial_netlist_components  # Use components
         if comp.name in variable_components
     }
     if not initial_values:
@@ -168,8 +168,8 @@ def curvefit_optimize(
     # --- 3. Define the Residual Function ---
     def residuals(values: List[float]) -> np.ndarray:
         # create a copy of the netlist to work with
-        component_objs = []
-        for component in initial_netlist:
+        component_objs: List[Component] = []
+        for component in initial_netlist_components:  # Use components
             component_objs.append(component)
 
         if len(initial_values) != len(values):
@@ -181,8 +181,8 @@ def curvefit_optimize(
 
         for component in component_objs:
             if component.name in current_values:
-                component_value_str = str(current_values[component.name])
-                component = component._replace(value=component_value_str)
+                # Directly set the value of the component
+                component.value = str(current_values[component.name])  # Just assign!
 
         update_netlist_file(temp_netlist_filepath, component_objs)
 
@@ -225,10 +225,11 @@ def curvefit_optimize(
 
     # Create final list of components
     final_netlist = []
-    for comp in initial_netlist:
+    for comp in initial_netlist_components:  # Use components.
         if comp.name in optimized_component_values:
-            new_value = str(optimized_component_values[comp.name])
-            final_netlist.append(comp._replace(value=new_value))  # Update value
+            # Directly update
+            comp.value = str(optimized_component_values[comp.name])
+            final_netlist.append(comp)  # Add the updated
         else:
             final_netlist.append(comp)  # Keep original component
 

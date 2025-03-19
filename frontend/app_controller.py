@@ -31,7 +31,7 @@ class AppController:
         self.current_window: Optional[tk.Frame] = None
         self.app_data: Dict[str, Any] = {
             "netlist_path": None,
-            "selected_parameters": [],
+            "selected_parameters": [],  # This is now ONLY for UI display
             "optimization_settings": {},
         }
         self.optimization_thread: Optional[threading.Thread] = None
@@ -114,27 +114,27 @@ class AppController:
             if not all([target_curve_filepath, x_var, y_var]):
                 messagebox.showerror("Error", "Missing curve fitting parameters.")
                 return
-            # Extract variable components
-            try:
-                initial_netlist = parse_netlist(netlist_path)  # Parse here
-                variable_components = [
-                    comp.name
-                    for comp in initial_netlist
-                    if comp.name in self.app_data["selected_parameters"]
-                ]
 
+            # --- CORRECT COMPONENT EXTRACTION ---
+            try:
+                initial_netlist_components, _ = parse_netlist(
+                    netlist_path
+                )  # Parse here, get components
+                variable_components = [
+                    comp.name for comp in initial_netlist_components if comp.variable
+                ]
             except Exception as e:
                 messagebox.showerror("Error", f"Error reading netlist: {e}")
                 return
-            # Put all the arguments into a dictionary.  This is the *message*
-            # that will be sent to the backend.
+
+            # Put all the arguments into a dictionary.
             optimization_args = {
                 "target_curve_filepath": target_curve_filepath,
                 "netlist_filepath": netlist_path,
                 "x_var": x_var,
                 "y_var": y_var,
                 "variable_components": variable_components,
-                "max_iterations": max_iterations,  # Pass max iterations
+                "max_iterations": max_iterations,
             }
 
             # --- 2. Start the optimization thread ---
