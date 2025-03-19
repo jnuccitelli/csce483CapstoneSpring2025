@@ -7,8 +7,8 @@ from .expression_dialog import ExpressionDialog
 from .constraint_table import ConstraintTable
 from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
-from backend.netlist_parse import parse_netlist, NetlistError
 from ..utils import import_constraints_from_file, export_constraints_to_file
+from backend.netlist_parse import parse_netlist, NetlistError  # Import here
 
 
 class OptimizationSettingsWindow(tk.Frame):
@@ -18,16 +18,14 @@ class OptimizationSettingsWindow(tk.Frame):
         self.selected_parameters = self.controller.get_app_data("selected_parameters")
         # --- Get Nodes ---
         netlist_path = self.controller.get_app_data("netlist_path")
-        if netlist_path:  # Only try to parse if a netlist path exists
+        if netlist_path:
             try:
-                self.netlist, self.nodes = parse_netlist(netlist_path)  # Get the nodes!
-                # Extract node names using set comprehension for unique values
-                # self.nodes = sorted(
-                #    list({node for comp in self.netlist for node in comp.nodes})
-                # )  # Pass nodes to CurveFitSettings
-            except Exception as e:
-                messagebox.showerror("Error", f"Error parsing netlist for nodes: {e}")
-                self.nodes = []  # Set to empty list on error
+                # parse the netlist and get the nodes
+                _, self.nodes = parse_netlist(netlist_path)  # Corrected call
+
+            except NetlistError as e:  # Catch specific exception
+                messagebox.showerror("Error", f"Error parsing netlist: {e}")
+                self.nodes = []
         else:
             self.nodes = []  # No netlist selected, pass an empty list of nodes to avoid issues.
         # ---
@@ -85,8 +83,12 @@ class OptimizationSettingsWindow(tk.Frame):
         )
 
         # --- Add, Remove, and Edit Buttons (within the ConstraintTable) ---
-        self.button_frame = ttk.Frame(main_frame)  # Create a frame for buttons.
-        self.button_frame.grid(row=4, column=2, sticky=tk.E, pady=5)
+        self.button_frame = ttk.Frame(
+            main_frame
+        )  # Create a frame for buttons.  Place *within* the parent.
+        self.button_frame.grid(
+            row=4, column=2, sticky=tk.E, pady=5
+        )  # grid relative to parent
         add_constraint_button = ttk.Button(
             self.button_frame,
             text="Add Constraint",
@@ -214,7 +216,8 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
-        print("Continue to next window (implementation needed)...")
+        # print("Continue to next window (implementation needed)...") #Removed old line
+        self.start_optimization()  # Start optimization after setting data.
 
     def import_constraints(self):
         """Imports constraints from a JSON file."""
@@ -235,3 +238,7 @@ class OptimizationSettingsWindow(tk.Frame):
             messagebox.showwarning("Warning", "No constraints to export.")
             return
         export_constraints_to_file(self.constraints)
+
+    def start_optimization(self):
+        """Starts the optimization."""
+        self.controller.start_optimization()
