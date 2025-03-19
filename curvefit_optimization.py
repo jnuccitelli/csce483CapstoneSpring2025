@@ -98,18 +98,18 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
         # print("SHAPES: ", X_ARRAY_FROM_XYCE.shape, ideal_interpolation(X_ARRAY_FROM_XYCE).shape, Y_ARRAY_FROM_XYCE.shape, xyce_interpolation(run_state["master_x_points"]).shape)
         # TODO: Proper residual? (subrtarct, rms, etc.)
         # Check node constraint violations
-        # TODO: Is an inf penalty appropriate?
+        # TODO: Is 1e6 penalty appropriate?
         for node_name, (node_lower, node_upper) in node_constraints.items():
             node_index = xyce_parse[0].index(node_name)
             node_values = np.array([float(x[node_index]) for x in xyce_parse[1]])
             if (node_lower is not None and np.any(node_values < node_lower)) or (node_upper is not None and np.any(node_values > node_upper)):
-                return np.full_like(run_state["master_x_points"], np.inf)  # Large penalty
+                return np.full_like(run_state["master_x_points"], 1e6)  # Large penalty
 
 
         return ideal_interpolation(run_state["master_x_points"]) - xyce_interpolation(run_state["master_x_points"])
     
     # TODO: trf vs dogbox vs lm
-    result = least_squares(residuals, changing_components_values, method='lm', bounds=(lower_bounds, upper_bounds), args=(changing_components,))
+    result = least_squares(residuals, changing_components_values, method='dogbox', bounds=(lower_bounds, upper_bounds), args=(changing_components,))
     # print(result.x)
     for i in range(len(changing_components)):
         changing_components[i].value = result.x[i]
@@ -126,7 +126,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
     optimal_netlist.class_to_file(local_netlist_file)
 
 
-# WRITABLE_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlistCopy.txt"
+# WRITABLE_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\voltageDividerCopy.txt"
 # TARGET_VALUE = 'V(2)'
 # TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
 #         [4.00000000e-04, 4.00000000e+00],
@@ -134,8 +134,10 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
 #         [1.20000000e-03, 4.00000000e+00],
 #         [1.60000000e-03, 4.00000000e+00],
 #         [2.00000000e-03, 4.00000000e+00]]
-# ORIG_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlist.txt"
+# ORIG_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\voltageDivider.txt"
 # TEST_NETLIST = Netlist(ORIG_NETLIST_PATH)
 # for component in TEST_NETLIST.components:
 #     component.variable = True
-# curvefit_optimize(TARGET_VALUE, TEST_ROWS, TEST_NETLIST, WRITABLE_NETLIST_PATH)
+# NODE_CONSTRAINTS = {"V(2)":(None, 4.1)}
+# NODE_CONSTRAINTS = {}
+# curvefit_optimize(TARGET_VALUE, TEST_ROWS, TEST_NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
