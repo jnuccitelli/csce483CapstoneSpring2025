@@ -1,6 +1,8 @@
+import numpy as np
+
 # Class Declaration
 class Component:
-    def __init__(self, name="", type="", value=0, variable=False, modified=False, minVal = 0, maxVal = float('inf')):
+    def __init__(self, name="", type="", value=0, variable=False, modified=False, minVal = 0, maxVal = np.inf):
         self.name = name
         self.type = type
         self.value = value
