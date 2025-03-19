@@ -7,6 +7,7 @@ from .expression_dialog import ExpressionDialog
 from .constraint_table import ConstraintTable
 from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
+from backend.netlist_parse import parse_netlist, NetlistError
 from ..utils import import_constraints_from_file, export_constraints_to_file
 
 
@@ -15,8 +16,22 @@ class OptimizationSettingsWindow(tk.Frame):
         super().__init__(parent)
         self.controller = controller
         self.selected_parameters = self.controller.get_app_data("selected_parameters")
+        # --- Get Nodes ---
+        netlist_path = self.controller.get_app_data("netlist_path")
+        if netlist_path:  # Only try to parse if a netlist path exists
+            try:
+                self.netlist, self.nodes = parse_netlist(netlist_path)  # Get the nodes!
+                # Extract node names using set comprehension for unique values
+                # self.nodes = sorted(
+                #    list({node for comp in self.netlist for node in comp.nodes})
+                # )  # Pass nodes to CurveFitSettings
+            except Exception as e:
+                messagebox.showerror("Error", f"Error parsing netlist for nodes: {e}")
+                self.nodes = []  # Set to empty list on error
+        else:
+            self.nodes = []  # No netlist selected, pass an empty list of nodes to avoid issues.
+        # ---
         self.constraints: List[Dict[str, str]] = []
-        self.nodes = self.controller.get_app_data("nodes")
 
         # --- Main Layout Frame ---
         main_frame = ttk.Frame(self)
@@ -45,7 +60,9 @@ class OptimizationSettingsWindow(tk.Frame):
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Initial display
 
-        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes)
+        self.curve_fit_settings = CurveFitSettings(
+            main_frame, self.selected_parameters, self.nodes
+        )  # Pass nodes
         self.curve_fit_settings.grid(
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Corrected row/column
@@ -59,13 +76,14 @@ class OptimizationSettingsWindow(tk.Frame):
 
         self.constraint_table = ConstraintTable(
             main_frame,
-            self.open_add_constraint_window,  # Pass the *method* as callback
-            self.remove_constraint,  # Pass remove_constraint
-            self.open_edit_constraint_dialog,  # Pass edit constraint
+            self.open_add_constraint_window,
+            self.remove_constraint,
+            self.open_edit_constraint_dialog,
         )
         self.constraint_table.grid(
             row=3, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5
         )
+
         # --- Add, Remove, and Edit Buttons (within the ConstraintTable) ---
         self.button_frame = ttk.Frame(main_frame)  # Create a frame for buttons.
         self.button_frame.grid(row=4, column=2, sticky=tk.E, pady=5)
@@ -104,7 +122,13 @@ class OptimizationSettingsWindow(tk.Frame):
             command=self.export_constraints,
         )
         export_button.pack(side=tk.LEFT, padx=5)
-
+        # --- Optimization Button ---
+        optimization_button = ttk.Button(
+            main_frame, text="Start Optimization", command=self.start_optimization
+        )
+        optimization_button.grid(
+            row=6, column=0, columnspan=3, sticky=tk.W + tk.E, pady=10
+        )
         # --- Navigation Buttons ---
         navigation_frame = ttk.Frame(self)
         navigation_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
