@@ -26,7 +26,7 @@ class CurveFitSettings(tk.Frame):
         
         # --- combobox for: line input vs heavyside vs custom csv
         self.select_input_type_frame = ttk.Frame(self)
-        self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X)
+        self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
         ttk.Label(self.select_input_type_frame, text="Input Function Type: ").pack(side=tk.LEFT)
         answer = tk.StringVar()
         self.input_type_options = ttk.Combobox(self.select_input_type_frame, textvariable=answer)
@@ -45,7 +45,7 @@ class CurveFitSettings(tk.Frame):
         for frame in self.frames.values():
             frame.pack_forget()
 
-        self.see_inputted_functions = ttk.Frame(self, width=100, height=100)
+        self.see_inputted_functions = ttk.Frame(self)
         self.see_inputted_functions.pack(pady=5, side=tk.TOP, expand=False)
 
 
@@ -139,7 +139,7 @@ class CurveFitSettings(tk.Frame):
         upload_frame = tk.Frame(self.select_input_type_frame)
         upload_frame.pack()
         curve_fit_button = tk.Button(upload_frame, text="Select Curve File", command=self.select_curve_file_and_process)
-        curve_fit_button.pack()
+        curve_fit_button.pack(side=tk.LEFT, padx=10)
 
         self.curve_file_path_var = tk.StringVar(value="")
         curve_file_label = tk.Label(upload_frame, textvariable=self.curve_file_path_var)
