@@ -12,7 +12,7 @@ class input_type(Enum):
     UPLOAD = 3
 
 class CurveFitSettings(tk.Frame):
-    def __init__(self, parent: tk.Frame, parameters: List[str], nodes: List[str]):
+    def __init__(self, parent: tk.Frame, parameters: List[str], nodes):
         super().__init__(parent)
         self.parameters = parameters
         self.nodes = nodes
@@ -157,7 +157,6 @@ class CurveFitSettings(tk.Frame):
         iterations_entry = ttk.Entry(iterations_frame, textvariable=self.iterations_var)
         iterations_entry.pack(side=tk.LEFT, padx=5)
 
-    def select_curve_file(self):
 
         self.curve_file_path_var = tk.StringVar(value="")
         curve_file_label = tk.Label(upload_frame, textvariable=self.curve_file_path_var)

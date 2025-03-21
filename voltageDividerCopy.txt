@@ -1,0 +1,15 @@
+Voltage Divider
+*
+* Voltage Sources
+VIN 1 0 5
+* Analysis Command
+.TRAN 2ns 2ms
+* Output
+.PRINT TRAN V(2)
+
+* Resistors
+R1 1 2 842.2623159280768
+
+R2 2 0 3369.04953054143
+*
+.END
