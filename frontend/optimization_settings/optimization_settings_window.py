@@ -8,6 +8,7 @@ from .constraint_table import ConstraintTable
 from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
 from ..utils import import_constraints_from_file, export_constraints_to_file
+from backend.curvefit_optimization_test import curvefit_optimize
 
 
 class OptimizationSettingsWindow(tk.Frame):
@@ -112,7 +113,7 @@ class OptimizationSettingsWindow(tk.Frame):
         back_button = ttk.Button(navigation_frame, text="Back", command=self.go_back)
         back_button.pack(side=tk.LEFT, padx=5)
         continue_button = ttk.Button(
-            navigation_frame, text="Continue", command=self.go_forward
+            navigation_frame, text="Begin Optimization", command=self.go_forward
         )
         continue_button.pack(side=tk.RIGHT, padx=5)
 
@@ -190,7 +191,33 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
+        #print(self.controller.get_app_data("optimization_settings"))
+        curveData = self.controller.get_app_data("optimization_settings")
+        #Replace with self.controller.get_app_data("optimization_settings) stuff
+        #TODO Get App data to set variable components to True and the
+        TARGET_VALUE = 'V(2)'
+        TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
+                [4.00000000e-04, 4.00000000e+00],
+                [8.00000000e-04, 4.00000000e+00],
+                [1.20000000e-03, 4.00000000e+00],
+                [1.60000000e-03, 4.00000000e+00],
+                [2.00000000e-03, 4.00000000e+00]]
+        ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
+        TEST_NETLIST = self.controller.get_app_data("netlist_object")
+        print("HELOOOOOSOSODSOD")
+        print(TEST_NETLIST)
+        WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
+        #ASK Brandon why all true and the node constraints
+        for component in TEST_NETLIST.components:
+            component.variable = True
+        NODE_CONSTRAINTS = {"V(2)":(None, 4.1)}
+        NODE_CONSTRAINTS = {}
+        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, TEST_NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
+        self.controller.update_app_data("netlist_object", TEST_NETLIST)
+        self.controller.update_app_data("optimization_results", optim)
+        print(optim)
         print("Continue to next window (implementation needed)...")
+        self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
         """Imports constraints from a JSON file."""

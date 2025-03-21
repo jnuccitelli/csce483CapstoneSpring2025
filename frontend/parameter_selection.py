@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Set
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from netlist_parse import Netlist, Component
+from backend.netlist_parse import Netlist, Component
 
 class ParameterSelectionWindow(tk.Frame):
     def __init__(
@@ -109,6 +109,7 @@ class ParameterSelectionWindow(tk.Frame):
         """Loads the netlist and extracts parameters."""
         try:
             self.netlist = Netlist(netlist_path)
+            self.controller.update_app_data("netlist_object",self.netlist)
             self.available_parameters = [component.name for component in self.netlist.components if isinstance(component, Component)]
             self.nodes = self.netlist.nodes
             self.update_available_listbox()
