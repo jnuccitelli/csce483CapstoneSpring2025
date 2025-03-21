@@ -4,7 +4,12 @@ from .parameter_selection import ParameterSelectionWindow
 from .optimization_settings.optimization_settings_window import (
     OptimizationSettingsWindow,
 )
+from.optimization_summary import OptimizationSummary
 from typing import Dict, Any, Optional
+
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from backend.netlist_parse import Netlist, Component
 
 
 class AppController:
@@ -20,7 +25,9 @@ class AppController:
             "netlist_path": None,
             "selected_parameters": [],
             "optimization_settings": {},  # Added
-            "nodes": set()
+            "nodes": set(),
+            "optimization_results": [],
+            "netlist_object": None
         }
         self.show_netlist_uploader()  # Start with the first window
 
@@ -35,6 +42,10 @@ class AppController:
     def show_optimization_settings(self) -> None:
         """Displays the optimization settings window."""
         self._show_window(OptimizationSettingsWindow)
+
+    def show_optimization_summary(self) -> None:
+        """Displays the optimization settings window."""
+        self._show_window(OptimizationSummary)
 
     def _show_window(self, window_class: type[tk.Frame], **kwargs) -> None:
         """Helper function to display a new window and destroy the old one."""
@@ -52,6 +63,8 @@ class AppController:
             self.show_netlist_uploader()
         elif target_window_name == "optimization_settings":  # Added
             self.show_optimization_settings()
+        elif target_window_name == "optimization_summary":  # Added
+            self.show_optimization_summary()
 
     def update_app_data(self, key: str, value: Any) -> None:
         """Updates the shared application data."""
