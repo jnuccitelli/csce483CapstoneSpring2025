@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
-
+import csv
 from enum import Enum
 
 class input_type(Enum):
@@ -16,12 +16,16 @@ class input_type(Enum):
     UPLOAD = 3
 
 class CurveFitSettings(tk.Frame):
+
+
     def __init__(self, parent: tk.Frame, parameters: List[str], nodes):
         super().__init__(parent)
         self.parameters = parameters
         self.nodes = nodes
         self.x_parameter_expression_var = tk.StringVar()
         self.y_parameter_expression_var = tk.StringVar()
+        self.frames = {}
+        self.uploaded_data = None
 
         
 
@@ -39,9 +43,8 @@ class CurveFitSettings(tk.Frame):
         self.input_type_options.pack(side=tk.LEFT)
         if self.input_type_options['values']:
             self.input_type_options.current(0)
-        self.input_type_options.bind("<<ComboboxSelected>>", lambda _: self.show_frame())
+        self.input_type_options.bind("<<ComboboxSelected>>", lambda event: self.show_frame())
 
-        self.frames = {}
         self.frames['Line'] = self.create_line_frame()
         self.frames['Heaviside'] = self.create_heaviside_frame()
         self.frames['Upload'] = self.create_upload_frame()
@@ -153,7 +156,7 @@ class CurveFitSettings(tk.Frame):
 
     def create_line_frame(self):
         line_frame = tk.Frame(self.select_input_type_frame)
-        line_frame.pack(side=tk.TOP, fill=tk.X)
+        line_frame.pack()
         tk.Label(line_frame, text="Slope = ").pack(side=tk.LEFT) 
         line_slope = tk.Entry(line_frame, width=5)
         line_slope.pack(side=tk.LEFT)# have to separate the pack() into a new line bc it makes the type NONE
@@ -163,18 +166,16 @@ class CurveFitSettings(tk.Frame):
         tk.Label(line_frame, text="to x = ").pack(side=tk.LEFT)
         line_end_x = tk.Entry(line_frame, width=5)
         line_end_x.pack(side=tk.LEFT)
-        line_button = tk.Button(line_frame, text="Add Line", command=lambda:
+        self.line_button = tk.Button(line_frame, text="Add Line", command=lambda:
                    self.add_function(input_type.LINE, line_slope, line_start_x, line_end_x))
-        line_button.pack(side=tk.LEFT, padx=10)
+        self.line_button.pack(side=tk.LEFT, padx=10)
         self.custom_functions = []
-
-        self.see_inputted_functions = tk.Frame(self.select_input_type_frame).pack(side=tk.LEFT)
 
         return line_frame
 
     def create_heaviside_frame(self):
         heaviside_frame = tk.Frame(self.select_input_type_frame)
-        heaviside_frame.pack(side=tk.TOP, fill=tk.X)
+        heaviside_frame.pack()
         tk.Label(heaviside_frame, text="Amplitude = ").pack(side=tk.LEFT) 
         heaviside_amplitude = tk.Entry(heaviside_frame, width=5)
         heaviside_amplitude.pack(side=tk.LEFT)# have to separate the pack() into a new line bc it makes the type NONE
@@ -184,25 +185,29 @@ class CurveFitSettings(tk.Frame):
         tk.Label(heaviside_frame, text="to x = ").pack(side=tk.LEFT)
         heaviside_end_x = tk.Entry(heaviside_frame, width=5)
         heaviside_end_x.pack(side=tk.LEFT)
-        heaviside_button = tk.Button(heaviside_frame, text="Add Heaviside", command=lambda:
-                   self.add_function(input_type.LINE, heaviside_amplitude, heaviside_start_x, heaviside_end_x))
-        heaviside_button.pack(side=tk.LEFT, padx=10)
+        self.heaviside_button = tk.Button(heaviside_frame, text="Add Heaviside", command=lambda:
+                   self.add_function(input_type.HEAVISIDE, heaviside_amplitude, heaviside_start_x, heaviside_end_x))
+        self.heaviside_button.pack(side=tk.LEFT, padx=10)
+        self.custom_functions = []
+
         return heaviside_frame
 
     def create_upload_frame(self):
         # --- Curve Fit File Picker ---
         upload_frame = tk.Frame(self.select_input_type_frame)
-        upload_frame.pack(side=tk.TOP, fill=tk.X)
-        curve_fit_button = tk.Button(upload_frame, text="Select Curve File", command=self.select_curve_file)
+        upload_frame.pack()
+        curve_fit_button = tk.Button(upload_frame, text="Select Curve File", command=self.select_curve_file_and_process)
         curve_fit_button.pack()
 
         self.curve_file_path_var = tk.StringVar(value="")
         curve_file_label = tk.Label(upload_frame, textvariable=self.curve_file_path_var)
         curve_file_label.pack()
 
+        # need to clear the custom function frame and the generated data points from HEAVISIDE or LINE, if a file gets uploaded instead
+
         return upload_frame
 
-    def show_frame(self, _):
+    def show_frame(self):
         selected_frame = self.input_type_options.get()
         if selected_frame in self.frames:
             # hide all the frames first
@@ -214,82 +219,110 @@ class CurveFitSettings(tk.Frame):
         
     def add_function(self, in_type, arg1, arg2, arg3):
         if in_type == input_type.LINE:
-            self.custom_functions.append((arg1.get(), arg2.get(), arg3.get()))
-            string_func = "LINE: y = " + arg1.get() + "*x; from x = [" + arg2.get() + " to " + arg3.get() + "]"
+            slope = float(arg1.get())
+            x_start = float(arg2.get())
+            x_end = float(arg3.get())
+            
+            self.heaviside_button.config(state=tk.DISABLED) #disable the other button
+            self.custom_functions.append((slope, x_start, x_end))
+            string_func = f"LINE: y = ({slope})*x; from x = [{x_start} to {x_end}]"
+
+            x_values = np.linspace(x_start, x_end, 100)
+            y_values = slope * x_values
+            self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
+            print("Generated LINE data:", self.generated_data)
+
         elif in_type == input_type.HEAVISIDE:
-            self.custom_functions.append((arg1.get(), arg2.get(), arg3.get()))
-            string_func = "HEAVISIDE: amplitude = " + arg1.get() + "; from x = [" + arg2.get() + " to " + arg3.get() + "]"
+            amplitude = float(arg1.get())
+            x_start = float(arg2.get())
+            x_end = float(arg3.get())
+            
+            self.line_button.config(state=tk.DISABLED) #disable the other button
+            self.custom_functions.append((amplitude, x_start, x_end))
+            string_func = f"HEAVISIDE: amplitude = {amplitude}; from x = [{x_start} to {x_end}]"
+            
+            x_values = np.linspace(x_start, x_end, 100)
+            y_values = [amplitude if x >= x_start else 0 for x in x_values]
+            self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
+            print("Generated HEAVISIDE data:", self.generated_data)
+
         else:
             return # this function should never be called if the type was anything other than LINE or HEAVISIDE (i.e. it could not be called if type was UPLOAD)
         self.func_label = ttk.Label(self.see_inputted_functions, text=string_func)
         self.func_label.pack(side=tk.TOP, pady=5)
 
-    def plot_data(self):
-        try:
-            self.ax.clear()
+    # def plot_data(self):
+    #     try:
+    #         self.ax.clear()
 
-            if self.generated_csv is not None:
-                # df = pd.DataFrame(self.csv_data)
-                df = pd.read_csv(self.generated_csv)
-                if df.shape[1] >= 2:  # Check if there are at least 2 columns
-                    self.ax.scatter(df.iloc[:,0], df.iloc[:,1])
-                #.iloc[] is primarily integer position based (from 0 to length-1 of the axis), but may also be used with a boolean array. -- from pandas website
-                else:
-                    print("CSV data does not have enough columns for scatter plot")
-            # if self.x_start is None or self.x_end is None:
-            #     raise ValueError("Start and stop values must not be None")
+    #         if self.uploaded_data is not None:
+    #             x_data = [point[0] for point in self.uploaded_data]
+    #             y_data = [point[1] for point in self.uploaded_data]
+    #             self.ax.scatter(x_data, y_data)  # Plot the uploaded data
+    #         if self.uploaded_data is not None:
+    #             # df = pd.DataFrame(self.csv_data)
+    #             df = pd.read_csv(self.generated_csv)
+    #             if df.shape[1] >= 2:  # Check if there are at least 2 columns
+    #                 self.ax.scatter(df.iloc[:,0], df.iloc[:,1])
+    #             #.iloc[] is primarily integer position based (from 0 to length-1 of the axis), but may also be used with a boolean array. -- from pandas website
+    #             else:
+    #                 print("CSV data does not have enough columns for scatter plot")
+    #         # if self.x_start is None or self.x_end is None:
+    #         #     raise ValueError("Start and stop values must not be None")
             
-                # y = eval(func)
-                for func, x_list, dfx_list in zip(self.all_funcs, self.all_x_lists, self.all_dfx_lists):
-                    self.ax.plot(x_list, dfx_list['y'], label=f'y = {func}')
-                self.ax.legend()
-                self.ax.set_xlabel('x') #placeholder, need to update this
-                self.ax.set_ylabel('y') #placeholder, need to update this
-            self.canvas.draw()
-        except Exception as e:
-            print(f"Error during plotting: {e}")
+    #             # y = eval(func)
+
+
+    #             for func, x_list, dfx_list in zip(self.all_funcs, self.all_x_lists, self.all_dfx_lists):
+    #                 self.ax.plot(x_list, dfx_list['y'], label=f'y = {func}')
+    #             self.ax.legend()
+    #             self.ax.set_xlabel('x') #placeholder, need to update this
+    #             self.ax.set_ylabel('y') #placeholder, need to update this
+    #         self.canvas.draw()
+    #     except Exception as e:
+    #         print(f"Error during plotting: {e}")
         
         
-    def create_csv(self, dfx_list):
-        if dfx_list is not None:  # Check if dfx exists before trying to save it
-            current_datetime = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            csv_filename = f"{current_datetime}_generated.csv"
-            try:
-                dfx_list.to_csv(csv_filename, index=False)
-                print(f"CSV file successfully created: {csv_filename}")
-                return csv_filename
-            except Exception as e:
-                print(f"Error while creating CSV: {e}")
-                return None
-        else:
-            print("No custom functions to save to CSV")
-            return None
+    # def create_csv(self, dfx_list):
+    #     if dfx_list is not None:  # Check if dfx exists before trying to save it
+    #         current_datetime = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    #         csv_filename = f"{current_datetime}_generated.csv"
+    #         try:
+    #             dfx_list.to_csv(csv_filename, index=False)
+    #             print(f"CSV file successfully created: {csv_filename}")
+    #             return csv_filename
+    #         except Exception as e:
+    #             print(f"Error while creating CSV: {e}")
+    #             return None
+    #     else:
+    #         print("No custom functions to save to CSV")
+    #         return None
 
 
-    def generate_data(self):
-        self.all_funcs = []
-        self.all_x_lists = []
-        self.all_dfx_lists = []
-        self.combined_dfx = pd.DataFrame()
+    # def generate_data(self):
+    #     self.all_funcs = []
+    #     self.all_x_lists = []
+    #     self.all_dfx_lists = []
+    #     self.combined_dfx = pd.DataFrame()
 
-        for func, x_start, x_end in self.custom_functions:
-            x = np.linspace(float(x_start), float(x_end), 100) #doing 100 for now, TODO: NEED TO CHANGE THIS PLACEHOLDER PROBABLY
-            dfx = pd.DataFrame({'x': x})
-            vec_func = np.vectorize(lambda x: eval(func, {'x': x, 'np': np}))
-            dfx['y'] = vec_func(x)
+    #     for func, x_start, x_end in self.custom_functions:
+    #         x = np.linspace(float(x_start), float(x_end), 100) #doing 100 for now, TODO: NEED TO CHANGE THIS PLACEHOLDER PROBABLY
+    #         dfx = pd.DataFrame({'x': x})
+    #         vec_func = np.vectorize(lambda x: eval(func, {'x': x, 'np': np}))
+    #         dfx['y'] = vec_func(x)
 
-            self.all_funcs.append(func)
-            self.all_x_lists.append(x)
-            self.all_dfx_lists.append(dfx)
-            self.combined_dfx = pd.concat([self.combined_dfx, dfx], ignore_index=True)
+    #         self.all_funcs.append(func)
+    #         self.all_x_lists.append(x)
+    #         self.all_dfx_lists.append(dfx)
+    #         self.combined_dfx = pd.concat([self.combined_dfx, dfx], ignore_index=True)
 
-        self.generated_csv = self.create_csv(self.combined_dfx)
-        self.plot_data()
+    #     self.generated_csv = self.create_csv(self.combined_dfx)
+    #     # self.plot_data()
         
         
 
 
-    def select_curve_file(self):
+    def select_curve_file_and_process(self):
         file_path = filedialog.askopenfilename(
             title="Select a Curve File",
             filetypes=[
@@ -301,6 +334,30 @@ class CurveFitSettings(tk.Frame):
         )
         if file_path:
             self.curve_file_path_var.set(file_path)
+            self.process_csv_file(file_path)
+
+    def process_csv_file(self, file_path):
+        try:
+            data_points = []
+            with open(file_path, 'r') as file:
+                csv_reader = csv.reader(file)
+                for row in csv_reader:
+                    # this is assuming CSV is formatted as x,y
+                    try:
+                        x, y = map(float, row)  # Convert x and y to float
+                        data_points.append([x, y])
+                    except ValueError:
+                        print(f"Skipping row: {row} - Invalid data format")
+                        continue 
+
+            self.uploaded_data = data_points  
+            print("Uploaded data:", self.uploaded_data)
+            # self.plot_data() #refresh plot w data, if we actually wanna plot
+            # use the data_points list for further processing or plotting
+        except FileNotFoundError:
+            print("File not found.")
+        except Exception as e:
+            print(f"Error processing CSV file: {e}")
 
     def open_expression_dialog(self, is_x=False):
         dialog = ExpressionDialog(self, self.parameters)
