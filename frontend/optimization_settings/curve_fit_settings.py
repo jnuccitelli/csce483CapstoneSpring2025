@@ -12,9 +12,7 @@ class input_type(Enum):
     UPLOAD = 3
 
 class CurveFitSettings(tk.Frame):
-
-
-    def __init__(self, parent: tk.Frame, parameters: List[str], nodes):
+    def __init__(self, parent: tk.Frame, parameters: List[str], nodes: List[str]):
         super().__init__(parent)
         self.parameters = parameters
         self.nodes = nodes
@@ -59,7 +57,7 @@ class CurveFitSettings(tk.Frame):
         self.x_parameter_dropdown = ttk.Combobox(
             x_param_frame,
             textvariable=self.x_parameter_var,
-            values=["t"],
+            values=["time"],  # Corrected to "time"
             state="readonly",
         )
         self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
@@ -82,7 +80,7 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_dropdown = ttk.Combobox(
             y_param_frame,
             textvariable=self.y_parameter_var,
-            values=[f"V({node})" for node in self.nodes],
+            values=[f"V({node})" for node in self.nodes],  # Use node voltages
             state="readonly",
         )
         self.y_parameter_dropdown.pack(side=tk.LEFT, padx=5)
@@ -140,6 +138,26 @@ class CurveFitSettings(tk.Frame):
         upload_frame.pack()
         curve_fit_button = tk.Button(upload_frame, text="Select Curve File", command=self.select_curve_file_and_process)
         curve_fit_button.pack(side=tk.LEFT, padx=10)
+
+        # --- Horizontal Line Value ---
+        hline_frame = ttk.Frame(self)
+        hline_frame.pack(pady=5)  # Added padding
+        hline_label = ttk.Label(hline_frame, text="Horizontal Line Value:")
+        hline_label.pack(side=tk.LEFT, padx=5)
+        self.hline_value_var = tk.StringVar(value="")
+        hline_entry = ttk.Entry(hline_frame, textvariable=self.hline_value_var)
+        hline_entry.pack(side=tk.LEFT, padx=5)
+
+        # --- Maximum Iterations ---
+        iterations_frame = ttk.Frame(self)
+        iterations_frame.pack(pady=5)
+        iterations_label = ttk.Label(iterations_frame, text="Max Iterations:")
+        iterations_label.pack(side=tk.LEFT, padx=5)
+        self.iterations_var = tk.StringVar(value="100")  # Default value
+        iterations_entry = ttk.Entry(iterations_frame, textvariable=self.iterations_var)
+        iterations_entry.pack(side=tk.LEFT, padx=5)
+
+    def select_curve_file(self):
 
         self.curve_file_path_var = tk.StringVar(value="")
         curve_file_label = tk.Label(upload_frame, textvariable=self.curve_file_path_var)
@@ -261,7 +279,11 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_expression_var.set("")
 
     def get_settings(self) -> Dict[str, Any]:
-        settings = {"curve_file": self.curve_file_path_var.get()}
+        settings = {
+            "curve_file": self.curve_file_path_var.get(),
+            "hline_value": self.hline_value_var.get(),
+            "iterations": self.iterations_var.get(),
+        }
         if self.x_parameter_expression_var.get():
             settings["x_parameter_expression"] = self.x_parameter_expression_var.get()
         else:
