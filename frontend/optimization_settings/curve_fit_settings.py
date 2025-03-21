@@ -166,8 +166,7 @@ class CurveFitSettings(tk.Frame):
         tk.Label(line_frame, text="to x = ").pack(side=tk.LEFT)
         line_end_x = tk.Entry(line_frame, width=5)
         line_end_x.pack(side=tk.LEFT)
-        self.line_button = tk.Button(line_frame, text="Add Line", command=lambda:
-                   self.add_function(input_type.LINE, line_slope, line_start_x, line_end_x))
+        self.line_button = tk.Button(line_frame, text="Add Line", command=lambda: self.add_function(input_type.LINE, line_slope, line_start_x, line_end_x))
         self.line_button.pack(side=tk.LEFT, padx=10)
         self.custom_functions = []
 
@@ -188,8 +187,7 @@ class CurveFitSettings(tk.Frame):
         self.heaviside_button = tk.Button(heaviside_frame, text="Add Heaviside", command=lambda:
                    self.add_function(input_type.HEAVISIDE, heaviside_amplitude, heaviside_start_x, heaviside_end_x))
         self.heaviside_button.pack(side=tk.LEFT, padx=10)
-        self.custom_functions = []
-
+        
         return heaviside_frame
 
     def create_upload_frame(self):
@@ -203,8 +201,6 @@ class CurveFitSettings(tk.Frame):
         curve_file_label = tk.Label(upload_frame, textvariable=self.curve_file_path_var)
         curve_file_label.pack()
 
-        # need to clear the custom function frame and the generated data points from HEAVISIDE or LINE, if a file gets uploaded instead
-
         return upload_frame
 
     def show_frame(self):
@@ -215,6 +211,21 @@ class CurveFitSettings(tk.Frame):
                 frame.pack_forget()
             # but show the selected frame
             self.frames[selected_frame].pack(fill=tk.BOTH)
+
+    def clear_existing_data(self):
+        # Clear custom functions
+        self.custom_functions = []
+        
+        # Clear generated data points
+        self.generated_data = None
+        
+        # Clear the see_inputted_functions frame
+        for widget in self.see_inputted_functions.winfo_children():
+            widget.destroy()
+        
+        # Reset buttons
+        self.line_button.config(state=tk.NORMAL)
+        self.heaviside_button.config(state=tk.NORMAL)
 
         
     def add_function(self, in_type, arg1, arg2, arg3):
@@ -333,6 +344,7 @@ class CurveFitSettings(tk.Frame):
             ],
         )
         if file_path:
+            self.clear_existing_data()
             self.curve_file_path_var.set(file_path)
             self.process_csv_file(file_path)
 
