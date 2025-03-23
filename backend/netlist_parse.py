@@ -24,13 +24,23 @@ class Netlist:
             with open(file_path,"r") as file:
             #Parsing Logic
                 file.readline()
+                subCkt = False
                 for line in file:
-                    values=line.strip().split(" ")
+                    values=line.strip().split()
                     #print(values)
-                    if(values == [""]):
+                    if(values == [""] or not values):
                         continue
-                    match values[0][0]:
-                        #Prob skipping K, X, @ 
+                    elif(values[0].upper() == ".SUBCKT"):
+                        subCkt = True
+                    elif(values[0].upper() == ".ENDS"):
+                        subCkt = False
+                    if(subCkt):
+                        continue
+                    match values[0][0].upper():
+                        #Prob skipping K, X, @, not anymore aiden....
+                        case 'X':
+                            for i in range(1,len(values) - 1):
+                                nodes.add(values[i])
                         case "A":
                             nodes.add(values[1])
                             nodes.add(values[2])
@@ -82,7 +92,9 @@ class Netlist:
             # Generate updated netlist
             updatedData=[]
             for line in data:
-                lineData = line.strip().split(" ")
+                lineData = line.strip().split()
+                if(not lineData):
+                    continue
                 for component in modifiedComponents:
                     if lineData[0] == component.name:
                         lineData[3] = component.value
