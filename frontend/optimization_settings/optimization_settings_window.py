@@ -8,7 +8,7 @@ from .constraint_table import ConstraintTable
 from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
 from ..utils import import_constraints_from_file, export_constraints_to_file
-from backend.curvefit_optimization_test import curvefit_optimize
+from backend.curvefit_optimization import curvefit_optimize
 
 
 class OptimizationSettingsWindow(tk.Frame):
