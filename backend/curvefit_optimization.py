@@ -50,12 +50,14 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
     try:
         global xyceRuns
         xyceRuns = 0
+        # Assumes input_curve[0] is X, input_curve[1] is Y/target_value
         x_ideal = np.array([x[0] for x in target_curve_rows])
         y_ideal = np.array([x[1] for x in target_curve_rows])
         ideal_interpolation = interp1d(x_ideal, y_ideal)
 
         local_netlist_file = shutil.copyfile(netlist.file_path, writable_netlist_path)
-
+    
+        # Parse netlist to figure out which parts are subject to change
         changing_components = [x for x in netlist.components if x.variable]
         changing_components_values = [x.value for x in changing_components]
 
@@ -73,6 +75,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
             new_netlist = netlist
             new_netlist.file_path = local_netlist_file
 
+            # Edit new_netlist with correct values
             for i in range(len(component_values)):
                 for netlist_component in new_netlist.components:
                     if components[i].name == netlist_component.name:
@@ -85,7 +88,10 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
     stdout=subprocess.PIPE,  # Capture stdout
     stderr=subprocess.PIPE)
 
+            #TODO: Smart way to set timestep and ensure consistency. Rn just decided arbitrarily by first run
             xyce_parse = parse_xyce_prn_output(local_netlist_file + ".prn")
+
+            # Assumes Xyce output is Index, Time, arb. # of VALUES
             row_index = xyce_parse[0].index(target_value)
 
             X_ARRAY_FROM_XYCE = np.array([float(x[1]) for x in xyce_parse[1]])
@@ -103,6 +109,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
                 if (node_lower is not None and np.any(node_values < node_lower)) or (node_upper is not None and np.any(node_values > node_upper)):
                     return np.full_like(run_state["master_x_points"], 1e6)  # Large penalty
 
+            # TODO: Proper residual? (subrtarct, rms, etc.)
             return ideal_interpolation(run_state["master_x_points"]) - xyce_interpolation(run_state["master_x_points"])
 
         result = least_squares(residuals, changing_components_values, method='dogbox',
