@@ -91,10 +91,19 @@ class Netlist:
                     component.modified = False
             # Generate updated netlist
             updatedData=[]
+            ctrl = False
             for line in data:
                 lineData = line.strip().split()
                 if(not lineData):
                     continue
+                #ignore lines in the unsuppotred .CONTROL directive
+                if(lineData[0].upper() == ".CONTROL"):
+                    crtl = True
+                if(lineData[0].upper() == ".ENDC"):
+                    crtl = False
+                if(crtl):
+                    continue
+                
                 for component in modifiedComponents:
                     if lineData[0] == component.name:
                         lineData[3] = component.value
