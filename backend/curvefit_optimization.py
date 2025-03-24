@@ -34,7 +34,7 @@ Two constraint types:
 # Node Value <, > Equation
 #   TODO
 
-# TODO: Update Component class with min_value, max_value when constratints are set
+# TODO: Update Component class with minVal, maxVal when constratints are set
 """
 node_constraints structure
 
@@ -61,8 +61,8 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
         changing_components = [x for x in netlist.components if x.variable]
         changing_components_values = [x.value for x in changing_components]
 
-        lower_bounds = np.array([x.min_value if hasattr(x, "min_value") else -np.inf for x in changing_components])
-        upper_bounds = np.array([x.max_value if hasattr(x, "max_value") else np.inf for x in changing_components])
+        lower_bounds = np.array([x.minVal if hasattr(x, "minVal") else 0 for x in changing_components])
+        upper_bounds = np.array([x.maxVal if hasattr(x, "maxVal") else np.inf for x in changing_components])
 
         run_state = {
             "first_run": True,
@@ -150,7 +150,8 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
     return [xyceRuns, leastSquaresIterations, initialCost, finalCost, optimality]
 
 
-# WRITABLE_NETLIST_PATH = r"C:\csce483CapstoneSpring2025\voltageDividerCopy.txt"
+# Voltage Divider Test
+# WRITABLE_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlists\voltageDividerCopy.txt"
 # TARGET_VALUE = 'V(2)'
 # TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
 #         [4.00000000e-04, 4.00000000e+00],
@@ -158,10 +159,55 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
 #         [1.20000000e-03, 4.00000000e+00],
 #         [1.60000000e-03, 4.00000000e+00],
 #         [2.00000000e-03, 4.00000000e+00]]
-# ORIG_NETLIST_PATH = r"C:\csce483CapstoneSpring2025\voltageDivider.txt"
+# ORIG_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlists\voltageDivider.txt"
 # TEST_NETLIST = Netlist(ORIG_NETLIST_PATH)
 # for component in TEST_NETLIST.components:
 #     component.variable = True
+#     component.maxVal = 2001
+
 # NODE_CONSTRAINTS = {"V(2)":(None, 4.1)}
+# curvefit_optimize(TARGET_VALUE, TEST_ROWS, TEST_NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
+
+# Instermental Amp Test
+# WRITABLE_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlists\InstermentalAmpCopy.cir"
+# TARGET_VALUE = 'V(_NET3)'
+# TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
+#         [4.00000000e-04, 4.00000000e+00],
+#         [8.00000000e-04, 4.00000000e+00],
+#         [1.20000000e-03, 4.00000000e+00],
+#         [1.60000000e-03, 4.00000000e+00],
+#         [2.00000000e-03, 4.00000000e+00],
+#         [2.40000000e-03, 4.00000000e+00],
+#         [2.80000000e-03, 4.00000000e+00],
+#         [3.20000000e-03, 4.00000000e+00],
+#         [3.60000000e-03, 4.00000000e+00],
+#         [4.00000000e-03, 4.00000000e+00],
+#         [4.40000000e-03, 4.00000000e+00],
+#         [4.80000000e-03, 4.00000000e+00],
+#         [5.20000000e-03, 4.00000000e+00],
+#         [5.60000000e-03, 4.00000000e+00],
+#         [6.00000000e-03, 4.00000000e+00],
+#         [6.40000000e-03, 4.00000000e+00],
+#         [6.80000000e-03, 4.00000000e+00],
+#         [7.20000000e-03, 4.00000000e+00],
+#         [7.60000000e-03, 4.00000000e+00],
+#         [8.00000000e-03, 4.00000000e+00],
+#         [8.40000000e-03, 4.00000000e+00],
+#         [8.80000000e-03, 4.00000000e+00],
+#         [9.20000000e-03, 4.00000000e+00],
+#         [9.60000000e-03, 4.00000000e+00],
+#         [1.00000000e-02, 4.00000000e+00]]
+
+# ORIG_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlists\InstermentalAmp.cir"
+# TEST_NETLIST = Netlist(ORIG_NETLIST_PATH)
+# TUNED_R = ["R1","R2","R3","R4","R5","R6","R7"]
+# print([x.name for x in TEST_NETLIST.components])
+# for component in TEST_NETLIST.components:
+#     if component.name in TUNED_R:
+#         component.variable = True
+#         # component.maxVal = 2001
+
+# # NODE_CONSTRAINTS = {"V(_NET3)":(None, 4.1)}
 # NODE_CONSTRAINTS = {}
+
 # curvefit_optimize(TARGET_VALUE, TEST_ROWS, TEST_NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
