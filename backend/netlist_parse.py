@@ -98,10 +98,10 @@ class Netlist:
                     continue
                 #ignore lines in the unsuppotred .CONTROL directive
                 if(lineData[0].upper() == ".CONTROL"):
-                    crtl = True
+                    ctrl = True
                 if(lineData[0].upper() == ".ENDC"):
-                    crtl = False
-                if(crtl):
+                    ctrl = False
+                if(ctrl):
                     continue
                 
                 for component in modifiedComponents:
