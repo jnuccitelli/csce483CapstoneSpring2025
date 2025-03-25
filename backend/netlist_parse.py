@@ -148,8 +148,30 @@ class Netlist:
             return float(newStr)
         else:
             return float(strVal)
+        
+    def writeTranCmdsToFile(self,file_path,initial_step_value,final_time_value,start_time_value,step_ceiling_value,target_node):
+        # the first arg is the file path
+        # the next four args are a string with scientfic notation prefixes ie 10n, 0.001n, 10m (this is just 10 seconds)
+        # target node is the name of the node that gets printed to xyce output as a string
+        try:
+            with open(file_path,"r") as file:
+                data = file.readlines()
+            print_command_string = f".PRINT TRAN V({target_node})\n"
+            tran_command_string = f".TRAN {initial_step_value}s {final_time_value}s {start_time_value}s {step_ceiling_value}s\n"
+            
+            data.insert(0,tran_command_string)
+            data.insert(1,print_command_string)
+            
+            with open(file_path,"w") as file:
+                file.writelines(data)
+        except FileNotFoundError:
+            print(f"Error: The file '{file_path}' was not found.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        return 
 # Test Statements
-# myNetlist = Netlist("netlist.txt")
+myNetlist = Netlist("./netlists/voltageDivider.txt")
+myNetlist.writeTranCmdsToFile("./netlists/voltageDivider.txt","1m","100m","0m",".1m","2")
 # print("Values pre class to file:")
 # print(myNetlist.components[0].name)
 # print(myNetlist.components[0].type)
