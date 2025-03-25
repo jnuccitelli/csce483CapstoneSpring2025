@@ -5,9 +5,10 @@ from .expression_dialog import ExpressionDialog
 
 
 class CurveFitSettings(tk.Frame):
-    def __init__(self, parent: tk.Frame, parameters: List[str]):
+    def __init__(self, parent: tk.Frame, parameters: List[str], nodes: List[str]):
         super().__init__(parent)
         self.parameters = parameters
+        self.nodes = nodes
         self.x_parameter_expression_var = tk.StringVar()
         self.y_parameter_expression_var = tk.StringVar()
 
@@ -29,7 +30,7 @@ class CurveFitSettings(tk.Frame):
         self.x_parameter_dropdown = ttk.Combobox(
             x_param_frame,
             textvariable=self.x_parameter_var,
-            values=self.parameters,
+            values=["time"],  # Corrected to "time"
             state="readonly",
         )
         self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
@@ -52,7 +53,7 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_dropdown = ttk.Combobox(
             y_param_frame,
             textvariable=self.y_parameter_var,
-            values=self.parameters,
+            values=[f"V({node})" for node in self.nodes],  # Use node voltages
             state="readonly",
         )
         self.y_parameter_dropdown.pack(side=tk.LEFT, padx=5)
@@ -67,6 +68,54 @@ class CurveFitSettings(tk.Frame):
         )
         y_expression_button.pack(side=tk.LEFT)
         y_param_frame.pack(side=tk.LEFT, padx=5)
+
+        # --- Horizontal Line Value ---
+        hline_frame = ttk.Frame(self)
+        hline_frame.pack(pady=5)  # Added padding
+        hline_label = ttk.Label(hline_frame, text="Horizontal Line Value:")
+        hline_label.pack(side=tk.LEFT, padx=5)
+        self.hline_value_var = tk.StringVar(value="")
+        hline_entry = ttk.Entry(hline_frame, textvariable=self.hline_value_var)
+        hline_entry.pack(side=tk.LEFT, padx=5)
+
+        # --- Maximum Iterations ---
+        iterations_frame = ttk.Frame(self)
+        iterations_frame.pack(pady=5)
+        iterations_label = ttk.Label(iterations_frame, text="Max Iterations:")
+        iterations_label.pack(side=tk.LEFT, padx=5)
+        self.iterations_var = tk.StringVar(value="100")  # Default value
+        iterations_entry = ttk.Entry(iterations_frame, textvariable=self.iterations_var)
+        iterations_entry.pack(side=tk.LEFT, padx=5)
+
+        # --- Min and Max Values for X and Y ---
+        min_max_frame = ttk.Frame(self)
+        min_max_frame.pack(pady=(0, 5), fill="x")
+
+        # X Min and Max
+        x_min_label = ttk.Label(min_max_frame, text="X Min:")
+        x_min_label.pack(anchor="w")
+        self.x_min_var = tk.StringVar(value="")
+        x_min_entry = ttk.Entry(min_max_frame, textvariable=self.x_min_var)
+        x_min_entry.pack(fill="x", pady=(0, 5))
+
+        x_max_label = ttk.Label(min_max_frame, text="X Max:")
+        x_max_label.pack(anchor="w")
+        self.x_max_var = tk.StringVar(value="")
+        x_max_entry = ttk.Entry(min_max_frame, textvariable=self.x_max_var)
+        x_max_entry.pack(fill="x", pady=(0, 5))
+
+        # Y Min and Max
+        y_min_label = ttk.Label(min_max_frame, text="Y Min:")
+        y_min_label.pack(anchor="w")
+        self.y_min_var = tk.StringVar(value="")
+        y_min_entry = ttk.Entry(min_max_frame, textvariable=self.y_min_var)
+        y_min_entry.pack(fill="x", pady=(0, 5))
+
+        y_max_label = ttk.Label(min_max_frame, text="Y Max:")
+        y_max_label.pack(anchor="w")
+        self.y_max_var = tk.StringVar(value="")
+        y_max_entry = ttk.Entry(min_max_frame, textvariable=self.y_max_var)
+        y_max_entry.pack(fill="x", pady=(0, 5))
 
     def select_curve_file(self):
         file_path = filedialog.askopenfilename(
@@ -99,7 +148,15 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_expression_var.set("")
 
     def get_settings(self) -> Dict[str, Any]:
-        settings = {"curve_file": self.curve_file_path_var.get()}
+        settings = {
+            "curve_file": self.curve_file_path_var.get(),
+            "hline_value": self.hline_value_var.get(),
+            "iterations": self.iterations_var.get(),
+            "x_min": self.x_min_var.get(),
+            "x_max": self.x_max_var.get(),
+            "y_min": self.y_min_var.get(),
+            "y_max": self.y_max_var.get(),
+        }
         if self.x_parameter_expression_var.get():
             settings["x_parameter_expression"] = self.x_parameter_expression_var.get()
         else:
