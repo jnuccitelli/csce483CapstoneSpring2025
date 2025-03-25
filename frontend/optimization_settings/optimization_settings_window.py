@@ -366,6 +366,18 @@ class OptimizationSettingsWindow(tk.Frame):
             "optimization_type": self.optimization_type_var.get(),
             "constraints": self.constraints,
         }
+        # Testing parsing functions
+        parsed_bounds, parsing_errors = self._parse_constraints_to_bounds()
+
+        # Print the results (for testing)
+        print("--- Parsed Parameter Bounds ---")
+        print(parsed_bounds)
+        if parsing_errors:
+            print("\n--- Parsing Errors ---")
+            for error in parsing_errors:
+                print(error)
+        print("---------------------------")
+
         if self.optimization_type_var.get() == "Maximize/Minimize":
             optimization_settings.update(self.max_min_settings.get_settings())
         elif self.optimization_type_var.get() == "Curve Fit":
