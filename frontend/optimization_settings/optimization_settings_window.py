@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 from .add_constraint_dialog import AddConstraintDialog
 from .edit_constraint_dialog import EditConstraintDialog
 from .expression_dialog import ExpressionDialog
@@ -46,7 +46,9 @@ class OptimizationSettingsWindow(tk.Frame):
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Initial display
 
-        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes)
+        self.curve_fit_settings = CurveFitSettings(
+            main_frame, self.selected_parameters, self.nodes
+        )
         self.curve_fit_settings.grid(
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Corrected row/column
@@ -126,6 +128,185 @@ class OptimizationSettingsWindow(tk.Frame):
             self.max_min_settings.grid_remove()
             self.curve_fit_settings.grid()
 
+    def _parse_constraints_to_bounds(
+        self,
+    ) -> Tuple[Dict[str, Tuple[Optional[float], Optional[float]]], List[str]]:
+        """
+        Parses self.constraints into a dictionary of parameter bounds suitable for optimization libraries.
+
+        Handles simple inequalities (>, >=, <, <=) and equality (=) constraints where one side
+        is a selected parameter and the other is a numerical value (potentially with SI units).
+
+        Args:
+            self: The instance of OptimizationSettingsWindow (implicitly passed). Contains
+                `self.constraints` (List[Dict[str, str]]) and
+                `self.selected_parameters` (List[str]).
+
+        Returns:
+            A tuple containing:
+            - parameter_bounds: Dict[str, Tuple[Optional[float], Optional[float]]] where keys are
+            parameter names and values are (lower_bound, upper_bound) tuples. None indicates
+            no bound in that direction. For equality ('='), both lower and upper bounds are set
+            to the same value if consistent with existing bounds.
+            - parse_errors: List[str] containing descriptions of any issues encountered during parsing
+            (e.g., invalid format, conflicting bounds, non-numeric values).
+        """
+        parameter_bounds: Dict[str, Tuple[Optional[float], Optional[float]]] = {}
+        parse_errors: List[str] = []
+        selected_params = (
+            self.selected_parameters or []
+        )  # Ensure it's a list, even if None initially
+
+        # Initialize bounds for all selected parameters to unbounded
+        for param_name in selected_params:
+            parameter_bounds[param_name] = (None, None)  # (lower, upper)
+
+        # Process each constraint provided by the user
+        for i, constraint in enumerate(
+            self.constraints
+        ):  # Use enumerate for clear error messages
+            left = constraint.get("left", "").strip()
+            op = constraint.get("operator", "").strip()
+            right = constraint.get("right", "").strip()
+
+            param_name = None
+            value_str = None
+            is_equality = False
+
+            # 1. Identify which side is the parameter and which is the value
+            if left in selected_params:
+                param_name = left
+                value_str = right
+            elif right in selected_params:
+                param_name = right
+                value_str = left
+                # Flip the operator logically for bounds calculation
+                op_map = {">": "<", ">=": "<=", "<": ">", "<=": ">=", "=": "="}
+                original_op = op
+                op = op_map.get(op)  # Get the flipped operator
+                if op is None:  # Check if the original operator was valid for flipping
+                    parse_errors.append(
+                        f"Constraint #{i + 1} ('{left} {original_op} {right}'): Invalid operator '{original_op}'."
+                    )
+                    continue  # Skip this constraint
+            else:
+                # Constraint doesn't involve a parameter selected for optimization
+                parse_errors.append(
+                    f"Constraint #{i + 1} ('{left} {op} {right}'): Does not involve a selected parameter ('{', '.join(selected_params)}')."
+                )
+                continue  # Skip this constraint
+
+            # 2. Parse the numerical value string (including common SI units)
+            try:
+                value_str_lower = value_str.lower()
+                multiplier = 1.0
+                num_part = value_str_lower
+
+                # Define SI prefix multipliers (order by length descending for correct parsing like 'meg' vs 'm')
+                suffix_map = {
+                    "t": 1e12,
+                    "g": 1e9,
+                    "meg": 1e6,
+                    "k": 1e3,
+                    "m": 1e-3,
+                    "u": 1e-6,
+                    "µ": 1e-6,  # Handle both 'u' and micro symbol
+                    "n": 1e-9,
+                    "p": 1e-12,
+                    "f": 1e-15,
+                }
+
+                # Find the longest matching suffix at the end of the string
+                found_suffix = None
+                for suffix in sorted(suffix_map.keys(), key=len, reverse=True):
+                    if value_str_lower.endswith(suffix):
+                        # Check if the part before the suffix is potentially a number
+                        potential_num = value_str_lower[: -len(suffix)]
+                        if not potential_num:
+                            continue  # Handle case like just "k", which is invalid
+                        try:
+                            float(potential_num)  # Verify the part is numeric
+                            num_part = potential_num
+                            multiplier = suffix_map[suffix]
+                            found_suffix = suffix
+                            break  # Use the first (longest) valid suffix found
+                        except ValueError:
+                            pass  # Not a number before suffix, try a shorter suffix
+
+                # Convert the numeric part (which might be the whole string if no suffix matched)
+                value = float(num_part) * multiplier
+
+            except (ValueError, TypeError):
+                # Handle cases where conversion to float fails
+                parse_errors.append(
+                    f"Constraint #{i + 1} ('{left} {op} {right}'): Cannot parse value '{value_str}' as a number."
+                )
+                continue  # Skip this constraint
+
+            # 3. Get current bounds and determine new bounds based on the operator
+            current_lower, current_upper = parameter_bounds.get(
+                param_name, (None, None)
+            )
+            new_lower, new_upper = (
+                current_lower,
+                current_upper,
+            )  # Start with current bounds
+
+            # Update bounds based on operator (treating >/>= as lower, </<= as upper)
+            # Note: SciPy bounds are typically inclusive [lower, upper]
+            if (
+                op == ">"
+            ):  # lower bound (exclusive -> often treated as inclusive in practice)
+                if new_lower is None or value > new_lower:
+                    new_lower = value
+            elif op == ">=":  # lower bound (inclusive)
+                if new_lower is None or value > new_lower:
+                    new_lower = value
+            elif op == "<":  # upper bound (exclusive -> often treated as inclusive)
+                if new_upper is None or value < new_upper:
+                    new_upper = value
+            elif op == "<=":  # upper bound (inclusive)
+                if new_upper is None or value < new_upper:
+                    new_upper = value
+            elif op == "=":
+                is_equality = True
+                # For equality, set both lower and upper bounds to the value
+                # Check for immediate conflict with existing bounds *before* applying
+                if (new_lower is not None and value < new_lower) or (
+                    new_upper is not None and value > new_upper
+                ):
+                    parse_errors.append(
+                        f"Constraint #{i + 1} ('{left} {op} {right}'): Equality value {value} conflicts with existing bounds [{new_lower}, {new_upper}] for {param_name}."
+                    )
+                    continue  # Skip applying this conflicting equality constraint
+                new_lower = value
+                new_upper = value
+            else:
+                # This case should have been caught earlier if the operator was invalid
+                parse_errors.append(
+                    f"Constraint #{i + 1} ('{left} {op} {right}'): Internal error - Unhandled operator '{op}'."
+                )
+                continue  # Skip
+
+            # 4. Final check: ensure lower bound is not greater than upper bound
+            if (
+                new_lower is not None
+                and new_upper is not None
+                and new_lower > new_upper
+            ):
+                # If the conflict wasn't caused by an equality constraint reported above:
+                if not is_equality:
+                    parse_errors.append(
+                        f"Constraint #{i + 1} ('{left} {op} {right}'): Creates conflicting bounds for {param_name} (lower={new_lower} > upper={new_upper})."
+                    )
+                continue  # Skip applying the update that caused the conflict
+
+            # 5. Update the bounds dictionary for this parameter
+            parameter_bounds[param_name] = (new_lower, new_upper)
+
+        # Return the dictionary of parsed bounds and the list of errors
+        return parameter_bounds, parse_errors
+
     def open_add_constraint_window(self):
         dialog = AddConstraintDialog(self, self.selected_parameters)
         self.wait_window(dialog)
@@ -191,28 +372,36 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
-        #print(self.controller.get_app_data("optimization_settings"))
+        # print(self.controller.get_app_data("optimization_settings"))
         curveData = self.controller.get_app_data("optimization_settings")
-        #Replace with self.controller.get_app_data("optimization_settings) stuff
-        #TODO Get App data to set variable components to True and the
-        TARGET_VALUE = 'V(2)'
-        TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
-                [4.00000000e-04, 4.00000000e+00],
-                [8.00000000e-04, 4.00000000e+00],
-                [1.20000000e-03, 4.00000000e+00],
-                [1.60000000e-03, 4.00000000e+00],
-                [2.00000000e-03, 4.00000000e+00]]
+        # Replace with self.controller.get_app_data("optimization_settings) stuff
+        # TODO Get App data to set variable components to True and the
+        TARGET_VALUE = "V(2)"
+        TEST_ROWS = [
+            [0.00000000e00, 4.00000000e00],
+            [4.00000000e-04, 4.00000000e00],
+            [8.00000000e-04, 4.00000000e00],
+            [1.20000000e-03, 4.00000000e00],
+            [1.60000000e-03, 4.00000000e00],
+            [2.00000000e-03, 4.00000000e00],
+        ]
         ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
         TEST_NETLIST = self.controller.get_app_data("netlist_object")
         print("HELOOOOOSOSODSOD")
         print(TEST_NETLIST)
-        WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
-        #ASK Brandon why all true and the node constraints
+        WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4] + "Copy.txt"
+        # ASK Brandon why all true and the node constraints
         for component in TEST_NETLIST.components:
             component.variable = True
-        NODE_CONSTRAINTS = {"V(2)":(None, 4.1)}
+        NODE_CONSTRAINTS = {"V(2)": (None, 4.1)}
         NODE_CONSTRAINTS = {}
-        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, TEST_NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
+        optim = curvefit_optimize(
+            TARGET_VALUE,
+            TEST_ROWS,
+            TEST_NETLIST,
+            WRITABLE_NETLIST_PATH,
+            NODE_CONSTRAINTS,
+        )
         self.controller.update_app_data("netlist_object", TEST_NETLIST)
         self.controller.update_app_data("optimization_results", optim)
         print(optim)
