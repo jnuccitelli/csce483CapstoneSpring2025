@@ -191,11 +191,13 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
-        #print(self.controller.get_app_data("optimization_settings"))
+
+        #SET VARIABLES FOR OPTIMIZATION
         curveData = self.controller.get_app_data("optimization_settings")
+        print(f"curveData = {curveData}")
         #Replace with self.controller.get_app_data("optimization_settings) stuff
-        #TODO Get App data to set variable components to True and the
-        TARGET_VALUE = 'V(2)'
+        TARGET_VALUE = curveData["y_parameter"]
+        #Katelyn Will fill in Test Rows
         TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
                 [4.00000000e-04, 4.00000000e+00],
                 [8.00000000e-04, 4.00000000e+00],
@@ -203,20 +205,34 @@ class OptimizationSettingsWindow(tk.Frame):
                 [1.60000000e-03, 4.00000000e+00],
                 [2.00000000e-03, 4.00000000e+00]]
         ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
-        TEST_NETLIST = self.controller.get_app_data("netlist_object")
-        print("HELOOOOOSOSODSOD")
-        print(TEST_NETLIST)
+        NETLIST = self.controller.get_app_data("netlist_object")
         WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
-        #ASK Brandon why all true and the node constraints
-        for component in TEST_NETLIST.components:
-            component.variable = True
-        NODE_CONSTRAINTS = {"V(2)":(None, 4.1)}
+        #NODE CONSTRAINTS NOT IMPLENTED RN
         NODE_CONSTRAINTS = {}
-        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, TEST_NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
-        self.controller.update_app_data("netlist_object", TEST_NETLIST)
+
+        print(f"TARGET_VALUE = {TARGET_VALUE}")
+        print(f"ORIG_NETLIST_PATH = {ORIG_NETLIST_PATH}")
+        print(f"NETLIST.components = {NETLIST.components}")
+        print(f"NETLIST.file_path = {NETLIST.file_path}")
+        print(f"WRIITABLE_NETLIST_PATH = {WRITABLE_NETLIST_PATH}")
+
+        #UPDATE NETLIST BASED ON OPTIMIZATION SETTINGS AND CONSTRAINTS
+        for component in NETLIST.components:
+            if component.name in self.controller.get_app_data("selected_parameters"):
+                component.variable = True
+
+        #ADD IN INITIAL CONSTRAINTS TO NETLIST CLASS VIA MINVAL MAXVAL
+        self.add_part_constraints(curveData["constraints"], NETLIST)
+
+        #Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
+        
+        #Optimization Call
+        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
+
+        #Update AppData
+        self.controller.update_app_data("netlist_object", NETLIST)
         self.controller.update_app_data("optimization_results", optim)
-        print(optim)
-        print("Continue to next window (implementation needed)...")
+        print(f"Optimization Results: {optim}")
         self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
@@ -238,3 +254,51 @@ class OptimizationSettingsWindow(tk.Frame):
             messagebox.showwarning("Warning", "No constraints to export.")
             return
         export_constraints_to_file(self.constraints)
+
+    def add_part_constraints(self,constraints, netlist):
+        def simplify_symbols(symbols):
+            if not symbols:
+                return []
+            
+            simplified = [symbols[0]]  # Start with the first symbol
+            
+            for i in range(1, len(symbols)):
+                if simplified[-1] == '-' and symbols[i] == '-':
+                    simplified[-1] = '+'  # "--" becomes "+"
+                elif (simplified[-1] == '+' and symbols[i] == '-') or (simplified[-1] == '-' and symbols[i] == '+'):
+                    simplified[-1] = '-'  # "+-" or "-+" becomes "-"
+                else:
+                    simplified.append(symbols[i])  # Otherwise, keep the symbol 
+            return simplified
+        # Current Approach: In the event of complex constraint (For example R1 + R2 >= R3 + R4) manipulate all minVal and maxVals to min and max solutions.
+        # For example, R1's minVal = R3 + R4 - R2. R2's minVal = R3 + R4 - R1. R3's maxVal = R1 + R2 - R4. R4's maxVal = R1 + R2 - R3.
+        # Not certain if this is the correct way to do so as it could cause incorrect functioning???
+        for constraint in constraints:
+            #Parse out  components
+            left = constraint["left"].replace("+", " + ").replace("-", " - ").replace("*", " * ").replace("/", " / ")
+            right = constraint["right"].replace("+", " + ").replace("-", " - ").replace("*", " * ").replace("/", " / ")
+
+            #Split to components and symbols
+            left = left.strip().split()
+            right = right.strip().split()
+
+            #Simplify symbols (- , - ==> + or +,- ==> - or -,+ ==> -)
+            preppedLeft = simplify_symbols(left)
+            preppedRight = simplify_symbols(right)
+            print(f"Constraint Left piece: {left}")
+            print(f"Constraint Right piece: {right}")
+            print(f"Constraint Prepped Left piece: {preppedLeft}")
+            print(f"Constraint Prepped Right piece: {preppedRight}")
+
+            #TODO Maybe Put in terms of all positives (e.g. R1 - R2 >= R3 becomes R1 >= R3 + R2)
+
+            #TODO Set minVal and maxVals to min and max solutions. Use evaluator possibly.
+
+            match constraint["operator"]:
+                case ">=":
+                    #Set minVals of right
+                    print(constraint["operator"])
+                case "=":
+                    print(constraint["operator"])
+                case "<=":
+                    print(constraint["operator"])

@@ -3,5 +3,25 @@
     "left": "R1/R2",
     "operator": ">=",
     "right": "42"
+  },
+  {
+    "left": "R1--R2",
+    "operator": ">=",
+    "right": "R1+R2"
+  },
+  {
+    "left": "-R1 + R2",
+    "operator": "=",
+    "right": "R2-R1"
+  },
+  {
+    "left": "R1 - +R2",
+    "operator": "<=",
+    "right": "R1+-R2"
+  },
+  {
+    "left": "-R1--R2",
+    "operator": ">=",
+    "right": "R1+R2-R2"
   }
 ]
