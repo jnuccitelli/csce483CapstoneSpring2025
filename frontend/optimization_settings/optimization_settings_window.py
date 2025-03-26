@@ -196,12 +196,7 @@ class OptimizationSettingsWindow(tk.Frame):
         #Replace with self.controller.get_app_data("optimization_settings) stuff
         #TODO Get App data to set variable components to True and the
         TARGET_VALUE = 'V(2)'
-        TEST_ROWS = [[0.00000000e+00, 4.00000000e+00],
-                [4.00000000e-04, 4.00000000e+00],
-                [8.00000000e-04, 4.00000000e+00],
-                [1.20000000e-03, 4.00000000e+00],
-                [1.60000000e-03, 4.00000000e+00],
-                [2.00000000e-03, 4.00000000e+00]]
+        TEST_ROWS = self.curve_fit_settings.generated_data
         ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
         TEST_NETLIST = self.controller.get_app_data("netlist_object")
         print("HELOOOOOSOSODSOD")

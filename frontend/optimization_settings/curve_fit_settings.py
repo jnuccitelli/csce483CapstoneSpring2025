@@ -19,7 +19,7 @@ class CurveFitSettings(tk.Frame):
         self.x_parameter_expression_var = tk.StringVar()
         self.y_parameter_expression_var = tk.StringVar()
         self.frames = {}
-        self.uploaded_data = None
+        self.generated_data = None
 
         
         # --- combobox for: line input vs heavyside vs custom csv
@@ -251,7 +251,7 @@ class CurveFitSettings(tk.Frame):
                         print(f"Skipping row: {row} - Invalid data format")
                         continue 
 
-            self.uploaded_data = data_points  
+            self.generated_data = data_points  
             # print("Uploaded data:", self.uploaded_data)
             # self.plot_data() #refresh plot w data, if we actually wanna plot
             # use the data_points list for further processing or plotting
