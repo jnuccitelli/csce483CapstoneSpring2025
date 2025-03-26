@@ -183,8 +183,8 @@ class Netlist:
             print(f"An error occurred: {e}")
         return 
 # Test Statements
-myNetlist = Netlist("./netlists/voltageDivider.txt")
-myNetlist.writeTranCmdsToFile("./netlists/voltageDivider.txt","1m","100m","0m",".1m","2")
+# myNetlist = Netlist("./netlists/voltageDivider.txt")
+# myNetlist.writeTranCmdsToFile("./netlists/voltageDivider.txt","1m","100m","0m",".1m","2")
 # print("Values pre class to file:")
 # print(myNetlist.components[0].name)
 # print(myNetlist.components[0].type)
