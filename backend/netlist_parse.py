@@ -156,6 +156,19 @@ class Netlist:
         try:
             with open(file_path,"r") as file:
                 data = file.readlines()
+
+            for line in data:
+                values=line.strip().split()
+                #print(values)
+                if(values == [""] or not values):
+                    continue
+                if(values[0].upper() == ".TRAN"):
+                    print("tran command detected already")
+                    return 
+                if(values[0].upper() == ".PRINT"):
+                    print("print command detected already")
+                    return 
+
             print_command_string = f".PRINT TRAN V({target_node})\n"
             tran_command_string = f".TRAN {initial_step_value}s {final_time_value}s {start_time_value}s {step_ceiling_value}s\n"
             
