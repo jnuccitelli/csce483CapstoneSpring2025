@@ -139,25 +139,6 @@ class CurveFitSettings(tk.Frame):
         curve_fit_button = tk.Button(upload_frame, text="Select Curve File", command=self.select_curve_file_and_process)
         curve_fit_button.pack(side=tk.LEFT, padx=10)
 
-        # --- Horizontal Line Value ---
-        hline_frame = ttk.Frame(self)
-        hline_frame.pack(pady=5)  # Added padding
-        hline_label = ttk.Label(hline_frame, text="Horizontal Line Value:")
-        hline_label.pack(side=tk.LEFT, padx=5)
-        self.hline_value_var = tk.StringVar(value="")
-        hline_entry = ttk.Entry(hline_frame, textvariable=self.hline_value_var)
-        hline_entry.pack(side=tk.LEFT, padx=5)
-
-        # --- Maximum Iterations ---
-        iterations_frame = ttk.Frame(self)
-        iterations_frame.pack(pady=5)
-        iterations_label = ttk.Label(iterations_frame, text="Max Iterations:")
-        iterations_label.pack(side=tk.LEFT, padx=5)
-        self.iterations_var = tk.StringVar(value="100")  # Default value
-        iterations_entry = ttk.Entry(iterations_frame, textvariable=self.iterations_var)
-        iterations_entry.pack(side=tk.LEFT, padx=5)
-
-
         self.curve_file_path_var = tk.StringVar(value="")
         curve_file_label = tk.Label(upload_frame, textvariable=self.curve_file_path_var)
         curve_file_label.pack()
