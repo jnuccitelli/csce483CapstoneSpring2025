@@ -9,9 +9,6 @@ vss1 vss 0 -5
 Vdd1 vdd 0 5 
 
 
-.tran 0 5m
-.print tran v(out) v(J1)
-
 
 *************
 *REVISION 2 18-MAR-2002

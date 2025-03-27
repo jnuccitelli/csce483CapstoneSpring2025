@@ -169,12 +169,11 @@ class Netlist:
                     print("print command detected already")
                     return 
 
-            print_command_string = f".PRINT TRAN V({target_node})\n"
+            print_command_string = f".PRINT TRAN {target_node}\n"
             tran_command_string = f".TRAN {initial_step_value}s {final_time_value}s {start_time_value}s {step_ceiling_value}s\n"
             
-            data.insert(0,tran_command_string)
-            data.insert(1,print_command_string)
-            
+            data.insert(len(data) - 1,tran_command_string)
+            data.insert(len(data) - 1,print_command_string)
             with open(file_path,"w") as file:
                 file.writelines(data)
         except FileNotFoundError:

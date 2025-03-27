@@ -261,8 +261,6 @@ class CurveFitSettings(tk.Frame):
     def get_settings(self) -> Dict[str, Any]:
         settings = {
             "curve_file": self.curve_file_path_var.get(),
-            "hline_value": self.hline_value_var.get(),
-            "iterations": self.iterations_var.get(),
         }
         if self.x_parameter_expression_var.get():
             settings["x_parameter_expression"] = self.x_parameter_expression_var.get()
