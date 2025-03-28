@@ -198,7 +198,7 @@ class OptimizationSettingsWindow(tk.Frame):
         print(f"curveData = {curveData}")
         #Replace with self.controller.get_app_data("optimization_settings) stuff
         TARGET_VALUE = curveData["y_parameter"]
-        TEST_ROWS = self.curve_fit_settings.generated_data
+        TEST_ROWS = self.controller.get_app_data("generated_data")
         ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
         NETLIST = self.controller.get_app_data("netlist_object")
         WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
