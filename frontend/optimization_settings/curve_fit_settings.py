@@ -12,8 +12,9 @@ class input_type(Enum):
     UPLOAD = 3
 
 class CurveFitSettings(tk.Frame):
-    def __init__(self, parent: tk.Frame, parameters: List[str], nodes):
+    def __init__(self, parent: tk.Frame, parameters: List[str], nodes, controller: "AppController"):
         super().__init__(parent)
+        self.controller = controller
         self.parameters = parameters
         self.nodes = nodes
         self.x_parameter_expression_var = tk.StringVar()
@@ -102,13 +103,16 @@ class CurveFitSettings(tk.Frame):
         tk.Label(line_frame, text="Slope = ").pack(side=tk.LEFT) 
         line_slope = tk.Entry(line_frame, width=5)
         line_slope.pack(side=tk.LEFT)# have to separate the pack() into a new line bc it makes the type NONE
-        tk.Label(line_frame, text="From x = ").pack(side=tk.LEFT)
+        tk.Label(line_frame, text=", Y-intercept = ").pack(side=tk.LEFT) 
+        line_intercept = tk.Entry(line_frame, width=5)
+        line_intercept.pack(side=tk.LEFT)
+        tk.Label(line_frame, text=", From x = ").pack(side=tk.LEFT)
         line_start_x = tk.Entry(line_frame, width=5)
         line_start_x.pack(side=tk.LEFT)
         tk.Label(line_frame, text="to x = ").pack(side=tk.LEFT)
         line_end_x = tk.Entry(line_frame, width=5)
         line_end_x.pack(side=tk.LEFT)
-        self.line_button = tk.Button(line_frame, text="Add Line", command=lambda: self.add_function(input_type.LINE, line_slope, line_start_x, line_end_x))
+        self.line_button = tk.Button(line_frame, text="Add Line", command=lambda: self.add_function(input_type.LINE, line_slope, line_intercept, line_start_x, line_end_x))
         self.line_button.pack(side=tk.LEFT, padx=10)
         self.custom_functions = []
 
@@ -120,14 +124,14 @@ class CurveFitSettings(tk.Frame):
         tk.Label(heaviside_frame, text="Amplitude = ").pack(side=tk.LEFT) 
         heaviside_amplitude = tk.Entry(heaviside_frame, width=5)
         heaviside_amplitude.pack(side=tk.LEFT)# have to separate the pack() into a new line bc it makes the type NONE
-        tk.Label(heaviside_frame, text="From x = ").pack(side=tk.LEFT)
+        tk.Label(heaviside_frame, text=", From x = ").pack(side=tk.LEFT)
         heaviside_start_x = tk.Entry(heaviside_frame, width=5)
         heaviside_start_x.pack(side=tk.LEFT)
         tk.Label(heaviside_frame, text="to x = ").pack(side=tk.LEFT)
         heaviside_end_x = tk.Entry(heaviside_frame, width=5)
         heaviside_end_x.pack(side=tk.LEFT)
         self.heaviside_button = tk.Button(heaviside_frame, text="Add Heaviside", command=lambda:
-                   self.add_function(input_type.HEAVISIDE, heaviside_amplitude, heaviside_start_x, heaviside_end_x))
+                   self.add_function(input_type.HEAVISIDE, heaviside_amplitude, heaviside_start_x, heaviside_end_x,""))
         self.heaviside_button.pack(side=tk.LEFT, padx=10)
         
         return heaviside_frame
@@ -167,19 +171,21 @@ class CurveFitSettings(tk.Frame):
         self.heaviside_button.config(state=tk.NORMAL)
 
         
-    def add_function(self, in_type, arg1, arg2, arg3):
+    def add_function(self, in_type, arg1, arg2, arg3, arg4):
         if in_type == input_type.LINE:
             slope = float(arg1.get())
-            x_start = float(arg2.get())
-            x_end = float(arg3.get())
+            y_int = float(arg2.get())
+            x_start = float(arg3.get())
+            x_end = float(arg4.get())
             
             self.heaviside_button.config(state=tk.DISABLED) #disable the other button
-            self.custom_functions.append((slope, x_start, x_end))
-            string_func = f"LINE: y = ({slope})*x; from x = [{x_start} to {x_end}]"
+            self.custom_functions.append((slope, y_int, x_start, x_end))
+            string_func = f"LINE: y = ({slope})*x + {y_int}; from x = [{x_start} to {x_end}]"
 
             x_values = np.linspace(x_start, x_end, 100)
-            y_values = slope * x_values
+            y_values = slope * x_values + y_int
             self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
+            self.controller.update_app_data("generated_data", self.generated_data)
             # print("Generated LINE data:", self.generated_data)
 
         elif in_type == input_type.HEAVISIDE:
@@ -194,6 +200,7 @@ class CurveFitSettings(tk.Frame):
             x_values = np.linspace(x_start, x_end, 100)
             y_values = [amplitude if x >= x_start else 0 for x in x_values]
             self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
+            self.controller.update_app_data("generated_data", self.generated_data)
             # print("Generated HEAVISIDE data:", self.generated_data)
 
         else:
@@ -231,8 +238,8 @@ class CurveFitSettings(tk.Frame):
                     except ValueError:
                         print(f"Skipping row: {row} - Invalid data format")
                         continue 
-
-            self.generated_data = data_points  
+            self.controller.update_app_data("generated_data", data_points)
+            # self.generated_data = data_points  
             # print("Uploaded data:", self.uploaded_data)
             # self.plot_data() #refresh plot w data, if we actually wanna plot
             # use the data_points list for further processing or plotting
@@ -260,9 +267,7 @@ class CurveFitSettings(tk.Frame):
 
     def get_settings(self) -> Dict[str, Any]:
         settings = {
-            "curve_file": self.curve_file_path_var.get(),
-            "hline_value": self.hline_value_var.get(),
-            "iterations": self.iterations_var.get(),
+            "curve_file": self.curve_file_path_var.get()
         }
         if self.x_parameter_expression_var.get():
             settings["x_parameter_expression"] = self.x_parameter_expression_var.get()
