@@ -55,7 +55,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
         y_ideal = np.array([x[1] for x in target_curve_rows])
         ideal_interpolation = interp1d(x_ideal, y_ideal)
 
-        local_netlist_file = shutil.copyfile(netlist.file_path, writable_netlist_path)
+        local_netlist_file = writable_netlist_path 
     
         # Parse netlist to figure out which parts are subject to change
         changing_components = [x for x in netlist.components if x.variable]
@@ -92,7 +92,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
             xyce_parse = parse_xyce_prn_output(local_netlist_file + ".prn")
 
             # Assumes Xyce output is Index, Time, arb. # of VALUES
-            row_index = xyce_parse[0].index(target_value)
+            row_index = xyce_parse[0].index(target_value.upper())
 
             X_ARRAY_FROM_XYCE = np.array([float(x[1]) for x in xyce_parse[1]])
             Y_ARRAY_FROM_XYCE = np.array([float(x[row_index]) for x in xyce_parse[1]])
@@ -112,8 +112,8 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
             # TODO: Proper residual? (subrtarct, rms, etc.)
             return ideal_interpolation(run_state["master_x_points"]) - xyce_interpolation(run_state["master_x_points"])
 
-        result = least_squares(residuals, changing_components_values, method='dogbox',
-                               bounds=(lower_bounds, upper_bounds), args=(changing_components,), verbose=1)
+        result = least_squares(residuals, changing_components_values, method='trf', bounds=(lower_bounds, upper_bounds), args=(changing_components,),
+                               xtol=1e-12, gtol=1e-12, ftol = 1e-12, jac='3-point', verbose=1)
 
         for i in range(len(changing_components)):
             changing_components[i].value = result.x[i]

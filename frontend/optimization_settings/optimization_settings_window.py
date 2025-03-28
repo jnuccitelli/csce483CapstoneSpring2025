@@ -1,4 +1,5 @@
 import tkinter as tk
+import shutil
 from tkinter import ttk, messagebox
 from typing import List, Dict, Any
 from .add_constraint_dialog import AddConstraintDialog
@@ -219,7 +220,11 @@ class OptimizationSettingsWindow(tk.Frame):
         self.add_part_constraints(curveData["constraints"], NETLIST)
 
         #Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
-        
+        endValue = max([sublist[0] for sublist in TEST_ROWS])
+        initValue = min([sublist[0] for sublist in TEST_ROWS])
+        shutil.copyfile(NETLIST.file_path, WRITABLE_NETLIST_PATH)
+        NETLIST.class_to_file(WRITABLE_NETLIST_PATH)
+        NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE)
         #Optimization Call
         optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
         # print(type(optim))
