@@ -27,7 +27,8 @@ class AppController:
             "optimization_settings": {},  # Added
             "nodes": set(),
             "optimization_results": [],
-            "netlist_object": None
+            "netlist_object": None,
+            "generated_data": []
         }
         self.show_netlist_uploader()  # Start with the first window
 

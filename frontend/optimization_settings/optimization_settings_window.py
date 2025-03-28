@@ -47,7 +47,7 @@ class OptimizationSettingsWindow(tk.Frame):
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Initial display
 
-        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes)
+        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes, controller)
         self.curve_fit_settings.grid(
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Corrected row/column
@@ -227,6 +227,7 @@ class OptimizationSettingsWindow(tk.Frame):
         NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE)
         #Optimization Call
         optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
+        # print(type(optim))
 
         #Update AppData
         self.controller.update_app_data("netlist_object", NETLIST)
