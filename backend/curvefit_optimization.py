@@ -112,8 +112,8 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
             # TODO: Proper residual? (subrtarct, rms, etc.)
             return ideal_interpolation(run_state["master_x_points"]) - xyce_interpolation(run_state["master_x_points"])
 
-        result = least_squares(residuals, changing_components_values, method='dogbox',
-                               bounds=(lower_bounds, upper_bounds), args=(changing_components,), verbose=1)
+        result = least_squares(residuals, changing_components_values, method='trf', bounds=(lower_bounds, upper_bounds), args=(changing_components,),
+                               xtol=1e-12, gtol=1e-12, ftol = 1e-12, jac='3-point', verbose=1)
 
         for i in range(len(changing_components)):
             changing_components[i].value = result.x[i]
