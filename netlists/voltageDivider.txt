@@ -1,3 +1,5 @@
+* Voltage Divider
+
 .TRAN 1ms 100ms 0ms .1ms
 .PRINT TRAN V(2)
 
