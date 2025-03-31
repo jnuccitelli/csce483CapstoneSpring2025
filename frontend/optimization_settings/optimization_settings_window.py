@@ -1,7 +1,7 @@
 import tkinter as tk
 import shutil
 from tkinter import ttk, messagebox
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from .add_constraint_dialog import AddConstraintDialog
 from .edit_constraint_dialog import EditConstraintDialog
 from .expression_dialog import ExpressionDialog
@@ -19,6 +19,16 @@ class OptimizationSettingsWindow(tk.Frame):
         self.selected_parameters = self.controller.get_app_data("selected_parameters")
         self.constraints: List[Dict[str, str]] = []
         self.nodes = self.controller.get_app_data("nodes")
+        self.node_voltage_expressions = [
+            f"V({node})" for node in self.nodes if node != "0"
+        ]  # Exclude ground node '0' typically
+
+        self.all_allowed_validation_vars = (
+            self.selected_parameters or []
+        ) + self.node_voltage_expressions
+        print(
+            f"Allowed Vars for Validation: {self.all_allowed_validation_vars}"
+        )  # For debugging
 
         # --- Main Layout Frame ---
         main_frame = ttk.Frame(self)
@@ -47,7 +57,9 @@ class OptimizationSettingsWindow(tk.Frame):
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Initial display
 
-        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes, controller)
+        self.curve_fit_settings = CurveFitSettings(
+            main_frame, self.selected_parameters, self.nodes, controller
+        )
         self.curve_fit_settings.grid(
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
         )  # Corrected row/column
@@ -128,25 +140,73 @@ class OptimizationSettingsWindow(tk.Frame):
             self.curve_fit_settings.grid()
 
     def open_add_constraint_window(self):
-        dialog = AddConstraintDialog(self, self.selected_parameters)
+        dialog = AddConstraintDialog(self, self.all_allowed_validation_vars)
         self.wait_window(dialog)
         if dialog.constraint:
             self.add_constraint(dialog.constraint)
 
-    def add_constraint(self, constraint: Dict[str, str]):
-        self.constraints.append(constraint)  # Store the constraint
-        self.constraint_table.add_constraint(
-            constraint
-        )  # add the constraint to the table
+    def _determine_constraint_type(self, left_expression: str) -> Optional[str]:
+        """Determines if the left side is a parameter or node expression."""
+        if left_expression in (self.selected_parameters or []):
+            return "parameter"
+        elif (
+            left_expression in self.node_voltage_expressions
+        ):  # Add checks for other node types if needed
+            return "node"
+        else:
+            # Could potentially be a more complex expression, but we're simplifying
+            # Check if it's *only* a known parameter or node expression
+            # You might need more robust parsing if left side can be complex later
+            is_valid_expr, used_vars = ExpressionEvaluator(
+                self.all_allowed_validation_vars
+            ).validate_expression(left_expression)
+            if is_valid_expr and len(used_vars) == 1:
+                if used_vars[0] in (self.selected_parameters or []):
+                    return "parameter"
+                if used_vars[0] in self.node_voltage_expressions:
+                    return "node"
+            return None  # Indicates an invalid or unsupported left-hand side format
+
+    def add_constraint(self, constraint_data: Dict[str, str]):
+        """Adds the constraint type and stores it."""
+        left_side = constraint_data.get("left", "")
+        constraint_type = self._determine_constraint_type(left_side)
+
+        if constraint_type is None:
+            messagebox.showerror(
+                "Error Adding Constraint",
+                f"Invalid left-hand side expression: '{left_side}'. Must be a single selected parameter or node expression (e.g., V(node)).",
+            )
+            return
+
+        # Add the type to the dictionary
+        constraint_data["type"] = constraint_type
+
+        self.constraints.append(constraint_data)  # Store the constraint with its type
+        print(f"Added Constraint: {constraint_data}")  # Debug
+        # Modify constraint_table.add_constraint to accept and potentially display the type
+        self.constraint_table.add_constraint(constraint_data)
 
     def open_edit_constraint_dialog(self, constraint: Dict[str, str], index: int):
-        dialog = EditConstraintDialog(self, self.selected_parameters, constraint)
+        dialog = EditConstraintDialog(
+            self, self.all_allowed_validation_vars, constraint
+        )
         self.wait_window(dialog)  # Wait for dialog to close
         if dialog.constraint is not None:
-            # update the constraint list
-            self.constraints[index] = dialog.constraint
-            # Update constraint to table
-            self.constraint_table.update_constraint(index, dialog.constraint)
+            new_constraint = (
+                dialog.constraint
+            )  # Assume EditDialog updated its self.constraint
+            constraint_type = self._determine_constraint_type(new_constraint["left"])
+            if constraint_type is None:
+                messagebox.showerror(
+                    "Error", f"Invalid left-hand side: {new_constraint['left']}"
+                )
+                return
+            new_constraint["type"] = constraint_type  # Add/Update type
+            self.constraints[index] = new_constraint
+            self.constraint_table.update_constraint(
+                index, new_constraint
+            )  # Update table (needs type support)
 
     def remove_constraint(self):
         # get selected from treeview and index
@@ -182,6 +242,30 @@ class OptimizationSettingsWindow(tk.Frame):
         self.controller.navigate("parameter_selection")
 
     def go_forward(self):
+        # --- Get all constraints (they now include the 'type' key) ---
+        all_constraints = (
+            self.constraints
+        )  # List of dicts like {'left': 'R1', ..., 'type': 'parameter'}
+
+        # --- Separate constraints by type ---
+        parameter_constraints = [
+            c for c in all_constraints if c.get("type") == "parameter"
+        ]
+        node_constraints_from_ui = [
+            c for c in all_constraints if c.get("type") == "node"
+        ]
+        untyped_constraints = [
+            c for c in all_constraints if c.get("type") not in ["parameter", "node"]
+        ]
+
+        print(f"Found {len(parameter_constraints)} parameter constraints:")
+        # for pc in parameter_constraints: print(f"  {pc}")
+        print(f"Found {len(node_constraints_from_ui)} node constraints:")
+        # for nc in node_constraints_from_ui: print(f"  {nc}")
+        if untyped_constraints:
+            print(
+                f"Warning: Found {len(untyped_constraints)} constraints without a valid type."
+            )
         optimization_settings = {
             "optimization_type": self.optimization_type_var.get(),
             "constraints": self.constraints,
@@ -193,16 +277,16 @@ class OptimizationSettingsWindow(tk.Frame):
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
 
-        #SET VARIABLES FOR OPTIMIZATION
+        # SET VARIABLES FOR OPTIMIZATION
         curveData = self.controller.get_app_data("optimization_settings")
         print(f"curveData = {curveData}")
-        #Replace with self.controller.get_app_data("optimization_settings) stuff
+        # Replace with self.controller.get_app_data("optimization_settings) stuff
         TARGET_VALUE = curveData["y_parameter"]
         TEST_ROWS = self.controller.get_app_data("generated_data")
         ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
         NETLIST = self.controller.get_app_data("netlist_object")
-        WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
-        #NODE CONSTRAINTS NOT IMPLENTED RN
+        WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4] + "Copy.txt"
+        # NODE CONSTRAINTS NOT IMPLENTED RN
         NODE_CONSTRAINTS = {}
 
         print(f"TARGET_VALUE = {TARGET_VALUE}")
@@ -211,25 +295,34 @@ class OptimizationSettingsWindow(tk.Frame):
         print(f"NETLIST.file_path = {NETLIST.file_path}")
         print(f"WRIITABLE_NETLIST_PATH = {WRITABLE_NETLIST_PATH}")
 
-        #UPDATE NETLIST BASED ON OPTIMIZATION SETTINGS AND CONSTRAINTS
+        # UPDATE NETLIST BASED ON OPTIMIZATION SETTINGS AND CONSTRAINTS
         for component in NETLIST.components:
             if component.name in self.controller.get_app_data("selected_parameters"):
                 component.variable = True
 
-        #ADD IN INITIAL CONSTRAINTS TO NETLIST CLASS VIA MINVAL MAXVAL
+        # ADD IN INITIAL CONSTRAINTS TO NETLIST CLASS VIA MINVAL MAXVAL
         self.add_part_constraints(curveData["constraints"], NETLIST)
 
-        #Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
+        # Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
         endValue = max([sublist[0] for sublist in TEST_ROWS])
         initValue = min([sublist[0] for sublist in TEST_ROWS])
         shutil.copyfile(NETLIST.file_path, WRITABLE_NETLIST_PATH)
         NETLIST.class_to_file(WRITABLE_NETLIST_PATH)
-        NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE)
-        #Optimization Call
-        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
+        NETLIST.writeTranCmdsToFile(
+            WRITABLE_NETLIST_PATH,
+            (endValue - initValue) / 100,
+            endValue,
+            initValue,
+            (endValue - initValue) / 100,
+            TARGET_VALUE,
+        )
+        # Optimization Call
+        optim = curvefit_optimize(
+            TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS
+        )
         # print(type(optim))
 
-        #Update AppData
+        # Update AppData
         self.controller.update_app_data("netlist_object", NETLIST)
         self.controller.update_app_data("optimization_results", optim)
         print(f"Optimization Results: {optim}")
@@ -255,34 +348,49 @@ class OptimizationSettingsWindow(tk.Frame):
             return
         export_constraints_to_file(self.constraints)
 
-    def add_part_constraints(self,constraints, netlist):
+    def add_part_constraints(self, constraints, netlist):
         def simplify_symbols(symbols):
             if not symbols:
                 return []
-            
+
             simplified = [symbols[0]]  # Start with the first symbol
-            
+
             for i in range(1, len(symbols)):
-                if simplified[-1] == '-' and symbols[i] == '-':
-                    simplified[-1] = '+'  # "--" becomes "+"
-                elif (simplified[-1] == '+' and symbols[i] == '-') or (simplified[-1] == '-' and symbols[i] == '+'):
-                    simplified[-1] = '-'  # "+-" or "-+" becomes "-"
+                if simplified[-1] == "-" and symbols[i] == "-":
+                    simplified[-1] = "+"  # "--" becomes "+"
+                elif (simplified[-1] == "+" and symbols[i] == "-") or (
+                    simplified[-1] == "-" and symbols[i] == "+"
+                ):
+                    simplified[-1] = "-"  # "+-" or "-+" becomes "-"
                 else:
-                    simplified.append(symbols[i])  # Otherwise, keep the symbol 
+                    simplified.append(symbols[i])  # Otherwise, keep the symbol
             return simplified
+
         # Current Approach: In the event of complex constraint (For example R1 + R2 >= R3 + R4) manipulate all minVal and maxVals to min and max solutions.
         # For example, R1's minVal = R3 + R4 - R2. R2's minVal = R3 + R4 - R1. R3's maxVal = R1 + R2 - R4. R4's maxVal = R1 + R2 - R3.
         # Not certain if this is the correct way to do so as it could cause incorrect functioning???
         for constraint in constraints:
-            #Parse out  components
-            left = constraint["left"].replace("+", " + ").replace("-", " - ").replace("*", " * ").replace("/", " / ")
-            right = constraint["right"].replace("+", " + ").replace("-", " - ").replace("*", " * ").replace("/", " / ")
+            # Parse out  components
+            left = (
+                constraint["left"]
+                .replace("+", " + ")
+                .replace("-", " - ")
+                .replace("*", " * ")
+                .replace("/", " / ")
+            )
+            right = (
+                constraint["right"]
+                .replace("+", " + ")
+                .replace("-", " - ")
+                .replace("*", " * ")
+                .replace("/", " / ")
+            )
 
-            #Split to components and symbols
+            # Split to components and symbols
             left = left.strip().split()
             right = right.strip().split()
 
-            #Simplify symbols (- , - ==> + or +,- ==> - or -,+ ==> -)
+            # Simplify symbols (- , - ==> + or +,- ==> - or -,+ ==> -)
             preppedLeft = simplify_symbols(left)
             preppedRight = simplify_symbols(right)
             print(f"Constraint Left piece: {left}")
@@ -290,13 +398,13 @@ class OptimizationSettingsWindow(tk.Frame):
             print(f"Constraint Prepped Left piece: {preppedLeft}")
             print(f"Constraint Prepped Right piece: {preppedRight}")
 
-            #TODO Maybe Put in terms of all positives (e.g. R1 - R2 >= R3 becomes R1 >= R3 + R2)
+            # TODO Maybe Put in terms of all positives (e.g. R1 - R2 >= R3 becomes R1 >= R3 + R2)
 
-            #TODO Set minVal and maxVals to min and max solutions. Use evaluator possibly.
+            # TODO Set minVal and maxVals to min and max solutions. Use evaluator possibly.
 
             match constraint["operator"]:
                 case ">=":
-                    #Set minVals of right
+                    # Set minVals of right
                     print(constraint["operator"])
                 case "=":
                     print(constraint["operator"])
