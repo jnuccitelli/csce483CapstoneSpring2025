@@ -5,13 +5,23 @@ from .expression_evaluator import ExpressionEvaluator
 
 
 class EditConstraintDialog(tk.Toplevel):
-    def __init__(self, parent, all_allowed_vars: List[str], constraint: Dict[str, str]):
+    def __init__(
+        self,
+        parent,
+        parameters: List[str],
+        node_expressions: List[str],
+        constraint: Dict[str, str],
+    ):
         super().__init__(parent)
         self.title("Edit Constraint")
-        self.all_allowed_vars = all_allowed_vars
+        self.parameters = parameters
+        self.node_expressions = node_expressions
+        self.all_allowed_vars_display = parameters + node_expressions
         self.constraint: Optional[Dict[str, str]] = constraint
-        # Pass the combined list to the evaluator
-        self.evaluator = ExpressionEvaluator(self.all_allowed_vars)
+        # Instantiate evaluator with separate lists
+        self.evaluator = ExpressionEvaluator(
+            parameters=parameters, node_expressions=node_expressions
+        )
 
         # --- Left Expression ---
         left_frame = ttk.Frame(self)
@@ -82,33 +92,26 @@ class EditConstraintDialog(tk.Toplevel):
         self.destroy()
 
     def is_valid_input(self, input_str: str) -> bool:
-        """Validates right-hand side as either a valid expression or a number."""
-        # Try to validate as an expression using ALL allowed vars
-        is_valid_expr, used_vars = self.evaluator.validate_expression(
-            input_str
-        )  # Evaluator uses self.all_allowed_vars
+        """Validates the right-hand side string as either a valid expression or a number."""
+        # 1. Try to validate as an expression using the evaluator
+        is_valid_expr, used_vars = self.evaluator.validate_expression(input_str)
 
         if is_valid_expr:
-            # Check if all variables used in the expression are allowed
-            # (This check might be redundant if validate_expression already does it, depends on evaluator impl.)
-            for var in used_vars:
-                # Note: evaluator.allowed_variables should be self.all_allowed_vars now
-                if var not in self.evaluator.allowed_variables:
-                    messagebox.showerror(
-                        "Error",
-                        f"Invalid variable '{var}' in expression '{input_str}'. Allowed: {self.evaluator.allowed_variables}",
-                    )
-                    return False
-            return True  # It's a valid expression using allowed variables/functions
+            # --- REMOVED REDUNDANT LOOP ---
+            # If validate_expression returned True, the variables used are already confirmed
+            # to be within the evaluator's allowed set (parameters + mangled nodes).
+            return True  # It's a valid expression
 
-        # If not a valid expression, check if it's a valid number (allow SI units maybe?)
+        # 2. If not a valid expression, check if it's a valid number
         try:
-            # TODO: Enhance to handle SI units like '1k', '0.1u' if needed for right side
-            # Basic float check for now:
+            # TODO: Enhance to handle SI units like '1k', '0.1u' if desired
             float(input_str)
             return True  # It's a valid number
         except ValueError:
+            # If it's neither a valid expression nor a valid number
             messagebox.showerror(
-                "Error", f"Invalid expression or number on right-hand side: {input_str}"
+                "Validation Error",
+                f"Invalid right-hand side: '{input_str}'.\nMust be a valid number or expression using allowed terms.",
+                parent=self,
             )
             return False

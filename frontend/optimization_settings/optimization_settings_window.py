@@ -140,7 +140,9 @@ class OptimizationSettingsWindow(tk.Frame):
             self.curve_fit_settings.grid()
 
     def open_add_constraint_window(self):
-        dialog = AddConstraintDialog(self, self.all_allowed_validation_vars)
+        dialog = AddConstraintDialog(
+            self, self.selected_parameters, self.node_voltage_expressions
+        )
         self.wait_window(dialog)
         if dialog.constraint:
             self.add_constraint(dialog.constraint)
@@ -189,7 +191,7 @@ class OptimizationSettingsWindow(tk.Frame):
 
     def open_edit_constraint_dialog(self, constraint: Dict[str, str], index: int):
         dialog = EditConstraintDialog(
-            self, self.all_allowed_validation_vars, constraint
+            self, self.selected_parameters, self.node_voltage_expressions, constraint
         )
         self.wait_window(dialog)  # Wait for dialog to close
         if dialog.constraint is not None:
