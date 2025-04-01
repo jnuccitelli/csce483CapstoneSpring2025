@@ -29,7 +29,7 @@ class OptimizationSettingsWindow(tk.Frame):
         optimization_type_label.grid(row=0, column=0, sticky=tk.W, pady=5)
 
         self.optimization_types = ["Maximize/Minimize", "Curve Fit"]
-        self.optimization_type_var = tk.StringVar(value="Maximize/Minimize")
+        self.optimization_type_var = tk.StringVar(value="Curve Fit")
         optimization_type_dropdown = ttk.Combobox(
             main_frame,
             textvariable=self.optimization_type_var,
@@ -42,16 +42,18 @@ class OptimizationSettingsWindow(tk.Frame):
         )
 
         # --- Settings Panels (Max/Min and Curve Fit) ---
-        self.max_min_settings = MaxMinSettings(main_frame, self.selected_parameters)
-        self.max_min_settings.grid(
-            row=1, column=0, columnspan=3, sticky=tk.W + tk.E
-        )  # Initial display
-
         self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes, controller)
         self.curve_fit_settings.grid(
             row=1, column=0, columnspan=3, sticky=tk.W + tk.E
-        )  # Corrected row/column
-        self.curve_fit_settings.grid_remove()  # Initially hidden
+        ) # Initial display
+
+        self.max_min_settings = MaxMinSettings(main_frame, self.selected_parameters)
+        self.max_min_settings.grid(
+            row=1, column=0, columnspan=3, sticky=tk.W + tk.E
+        )  
+        self.max_min_settings.grid_remove()  # Initially hidden
+
+        
 
         # --- Constraints Table ---
         constraints_label = ttk.Label(main_frame, text="Constraints:")
