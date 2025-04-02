@@ -25,7 +25,7 @@ class CurveFitSettings(tk.Frame):
         
         # --- combobox for: line input vs heavyside vs custom csv
         self.select_input_type_frame = ttk.Frame(self)
-        self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+        self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X)
         ttk.Label(self.select_input_type_frame, text="Input Function Type: ").pack(side=tk.LEFT)
         answer = tk.StringVar()
         self.input_type_options = ttk.Combobox(self.select_input_type_frame, textvariable=answer)
