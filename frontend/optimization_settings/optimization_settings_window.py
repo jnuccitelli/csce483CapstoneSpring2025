@@ -25,52 +25,53 @@ class OptimizationSettingsWindow(tk.Frame):
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # --- Optimization Type Dropdown ---
-        optimization_type_label = ttk.Label(main_frame, text="Optimization Type:")
-        optimization_type_label.grid(row=0, column=0, sticky=tk.W, pady=5)
+        optimization_type_frame = ttk.Frame(main_frame)
+        optimization_type_frame.pack(side=tk.TOP, fill=tk.X)
+        optimization_type_label = ttk.Label(optimization_type_frame, text="Optimization Type:")
+        optimization_type_label.pack(side=tk.LEFT, anchor=tk.W, pady=5)
 
         self.optimization_types = ["Maximize/Minimize", "Curve Fit"]
-        self.optimization_type_var = tk.StringVar(value="Maximize/Minimize")
+        self.optimization_type_var = tk.StringVar(value="Curve Fit")
         optimization_type_dropdown = ttk.Combobox(
-            main_frame,
+            optimization_type_frame,
             textvariable=self.optimization_type_var,
             values=self.optimization_types,
             state="readonly",
         )
-        optimization_type_dropdown.grid(row=0, column=1, sticky=tk.W, pady=5)
+        optimization_type_dropdown.pack(side=tk.LEFT, anchor=tk.W, pady=5)
         optimization_type_dropdown.bind(
             "<<ComboboxSelected>>", self.on_optimization_type_change
         )
 
         # --- Settings Panels (Max/Min and Curve Fit) ---
-        self.max_min_settings = MaxMinSettings(main_frame, self.selected_parameters)
-        self.max_min_settings.grid(
-            row=1, column=0, columnspan=3, sticky=tk.W + tk.E
-        )  # Initial display
+        setting_panel_frame = ttk.Frame(main_frame)
+        setting_panel_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+        self.curve_fit_settings = CurveFitSettings(setting_panel_frame, self.selected_parameters, self.nodes, controller)
+        self.curve_fit_settings.pack(fill=tk.X) # Initial display
 
-        self.curve_fit_settings = CurveFitSettings(main_frame, self.selected_parameters, self.nodes, controller)
-        self.curve_fit_settings.grid(
-            row=1, column=0, columnspan=3, sticky=tk.W + tk.E
-        )  # Corrected row/column
-        self.curve_fit_settings.grid_remove()  # Initially hidden
+        self.max_min_settings = MaxMinSettings(setting_panel_frame, self.selected_parameters)
+        self.max_min_settings.pack(fill=tk.X)
+        self.max_min_settings.pack_forget()  # Initially hidden
+
+        
 
         # --- Constraints Table ---
-        constraints_label = ttk.Label(main_frame, text="Constraints:")
-        constraints_label.grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )  # Added a label, and constraints are row 2
+        constraints_frame = ttk.Frame(main_frame)
+        constraints_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+        constraints_label = ttk.Label(constraints_frame, text="Constraints:")
+        constraints_label.pack(side=tk.TOP, anchor=tk.W, pady=5) # Added a label, and constraints are row 2
 
         self.constraint_table = ConstraintTable(
-            main_frame,
+            constraints_frame,
             self.open_add_constraint_window,  # Pass the *method* as callback
             self.remove_constraint,  # Pass remove_constraint
             self.open_edit_constraint_dialog,  # Pass edit constraint
         )
-        self.constraint_table.grid(
-            row=3, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5
-        )
+        self.constraint_table.pack(fill=tk.BOTH, expand=True)
+
         # --- Add, Remove, and Edit Buttons (within the ConstraintTable) ---
-        self.button_frame = ttk.Frame(main_frame)  # Create a frame for buttons.
-        self.button_frame.grid(row=4, column=2, sticky=tk.E, pady=5)
+        self.button_frame = ttk.Frame(constraints_frame)  # Create a frame for buttons.
+        self.button_frame.pack(side=tk.TOP, anchor=tk.E)
         add_constraint_button = ttk.Button(
             self.button_frame,
             text="Add Constraint",
@@ -88,10 +89,8 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         edit_constraint_button.pack(side=tk.LEFT, padx=2)
         # --- Import/Export Buttons ---
-        import_export_frame = ttk.Frame(main_frame)
-        import_export_frame.grid(
-            row=5, column=0, columnspan=3, sticky=tk.E, pady=5
-        )  # Corrected row/column
+        import_export_frame = ttk.Frame(constraints_frame)
+        import_export_frame.pack(side=tk.TOP) # Corrected row/column
 
         import_button = ttk.Button(
             import_export_frame,
@@ -121,11 +120,11 @@ class OptimizationSettingsWindow(tk.Frame):
     def on_optimization_type_change(self, event=None):
         selected_type = self.optimization_type_var.get()
         if selected_type == "Maximize/Minimize":
-            self.curve_fit_settings.grid_remove()
-            self.max_min_settings.grid()
+            self.curve_fit_settings.pack_forget()
+            self.max_min_settings.pack(fill=tk.BOTH, expand=True)
         elif selected_type == "Curve Fit":
-            self.max_min_settings.grid_remove()
-            self.curve_fit_settings.grid()
+            self.max_min_settings.pack_forget()
+            self.curve_fit_settings.pack(fill=tk.BOTH, expand=True)
 
     def open_add_constraint_window(self):
         dialog = AddConstraintDialog(self, self.selected_parameters)

@@ -25,7 +25,7 @@ class CurveFitSettings(tk.Frame):
         
         # --- combobox for: line input vs heavyside vs custom csv
         self.select_input_type_frame = ttk.Frame(self)
-        self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+        self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X)
         ttk.Label(self.select_input_type_frame, text="Input Function Type: ").pack(side=tk.LEFT)
         answer = tk.StringVar()
         self.input_type_options = ttk.Combobox(self.select_input_type_frame, textvariable=answer)
@@ -51,30 +51,30 @@ class CurveFitSettings(tk.Frame):
 
 
         # --- X and Y Parameter Dropdowns and Expressions ---
-        x_param_label = ttk.Label(self, text="X Parameter:")
-        x_param_label.pack(side=tk.LEFT, padx=5)
-        self.x_parameter_var = tk.StringVar()
-        x_param_frame = ttk.Frame(self)
-        self.x_parameter_dropdown = ttk.Combobox(
-            x_param_frame,
-            textvariable=self.x_parameter_var,
-            values=["time"],  # Corrected to "time"
-            state="readonly",
-        )
-        self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
-        self.x_parameter_dropdown.bind(
-            "<<ComboboxSelected>>", self.on_x_parameter_selected
-        )
-        x_expression_button = ttk.Button(
-            x_param_frame,
-            text="Expr...",
-            command=lambda: self.open_expression_dialog(is_x=True),
-        )
-        x_expression_button.pack(side=tk.LEFT)
-        x_param_frame.pack(side=tk.LEFT, padx=5)
+        x_param_label = ttk.Label(self, text="X Parameter: TIME , ")
+        x_param_label.pack(side=tk.LEFT)
+        self.x_parameter_var = tk.StringVar(value="TIME")
+        # x_param_frame = ttk.Frame(self)
+        # self.x_parameter_dropdown = ttk.Combobox(
+        #     x_param_frame,
+        #     textvariable=self.x_parameter_var,
+        #     values=["time"],  # Corrected to "time"
+        #     state="readonly",
+        # )
+        # self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
+        # self.x_parameter_dropdown.bind(
+        #     "<<ComboboxSelected>>", self.on_x_parameter_selected
+        # )
+        # x_expression_button = ttk.Button(
+        #     x_param_frame,
+        #     text="Expr...",
+        #     command=lambda: self.open_expression_dialog(is_x=True),
+        # )
+        # x_expression_button.pack(side=tk.LEFT)
+        # x_param_frame.pack(side=tk.LEFT, padx=5)
 
         y_param_label = ttk.Label(self, text="Y Parameter:")
-        y_param_label.pack(side=tk.LEFT, padx=5)
+        y_param_label.pack(side=tk.LEFT)
         self.y_parameter_var = tk.StringVar()
 
         y_param_frame = ttk.Frame(self)
@@ -95,7 +95,7 @@ class CurveFitSettings(tk.Frame):
             command=lambda: self.open_expression_dialog(is_x=False),
         )
         y_expression_button.pack(side=tk.LEFT)
-        y_param_frame.pack(side=tk.LEFT, padx=5)
+        y_param_frame.pack(side=tk.LEFT)
     
     def create_line_frame(self):
         line_frame = tk.Frame(self.select_input_type_frame)
