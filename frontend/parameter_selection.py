@@ -134,10 +134,12 @@ class ParameterSelectionWindow(tk.Frame):
 
         return parameters
 
+################# added sorted #################
     def update_available_listbox(self):
         self.available_listbox.delete(0, tk.END)
-        for param in self.available_parameters:
+        for param in sorted(self.available_parameters):
             self.available_listbox.insert(tk.END, param)
+################# ################# #################
 
     def update_selected_listbox(self):
         self.selected_listbox.delete(0, tk.END)

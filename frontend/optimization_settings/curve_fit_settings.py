@@ -103,7 +103,7 @@ class CurveFitSettings(tk.Frame):
 
         ####################################################
 
-        # Add all OR Remove all parameters buttons below the Y parameter dropdown
+        # Add Select all OR Remove all parameters buttons below the Y parameter dropdown
         select_buttons_frame = ttk.Frame(self)
         select_buttons_frame.pack(pady=5, side=tk.TOP)
 
