@@ -43,7 +43,7 @@ node_constraints = {
     'V(3)': (1.0, None)   # Example: V(3) must be >= 1V
 }
 """
-def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netlist, writable_netlist_path: str, node_constraints: dict) -> None:
+def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netlist, writable_netlist_path: str, node_constraints: dict, equality_part_constraints: list) -> None:
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()  # Redirect output
 
@@ -83,6 +83,19 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
                         netlist_component.modified = True
                         break
 
+            # ENFORCE EQUALITY PART CONSTRAINTS
+            componentVals = {}
+            for component in new_netlist.components:
+                componentVals[component.name] = component.value
+            for constraint in equality_part_constraints:
+                left = constraint["left"].strip()
+                right = constraint["right"].strip()
+                for component in new_netlist.components:
+                    if left == component.name:
+                        component.value = eval(right, componentVals)
+                        component.variable = False
+                        component.modified = True
+            
             new_netlist.class_to_file(local_netlist_file)
             subprocess.run(["Xyce", "-delim", "COMMA", "-quiet", local_netlist_file],
     stdout=subprocess.PIPE,  # Capture stdout
