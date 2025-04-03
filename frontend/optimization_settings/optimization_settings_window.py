@@ -19,6 +19,8 @@ class OptimizationSettingsWindow(tk.Frame):
         self.selected_parameters = self.controller.get_app_data("selected_parameters")
         self.constraints: List[Dict[str, str]] = []
         self.nodes = self.controller.get_app_data("nodes")
+        self.function_button_pressed = False
+        self.y_param_dropdown_selected = False
 
         # --- Main Layout Frame ---
         main_frame = ttk.Frame(self)
@@ -46,7 +48,7 @@ class OptimizationSettingsWindow(tk.Frame):
         # --- Settings Panels (Max/Min and Curve Fit) ---
         setting_panel_frame = ttk.Frame(main_frame)
         setting_panel_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
-        self.curve_fit_settings = CurveFitSettings(setting_panel_frame, self.selected_parameters, self.nodes, controller)
+        self.curve_fit_settings = CurveFitSettings(setting_panel_frame, self.selected_parameters, self.nodes, controller, inputs_completed_callback=self.handle_curve_fit_conditions)
         self.curve_fit_settings.pack(fill=tk.X) # Initial display
 
         self.max_min_settings = MaxMinSettings(setting_panel_frame, self.selected_parameters)
@@ -112,10 +114,27 @@ class OptimizationSettingsWindow(tk.Frame):
 
         back_button = ttk.Button(navigation_frame, text="Back", command=self.go_back)
         back_button.pack(side=tk.LEFT, padx=5)
-        continue_button = ttk.Button(
-            navigation_frame, text="Begin Optimization", command=self.go_forward
+        self.continue_button = ttk.Button(
+            navigation_frame, text="Begin Optimization", command=self.go_forward, state=tk.DISABLED
         )
-        continue_button.pack(side=tk.RIGHT, padx=5)
+        self.continue_button.pack(side=tk.RIGHT, padx=5)
+
+    def handle_curve_fit_conditions(self, condition_type, state):
+        """Update flags based on inputs from CurveFitSettings."""
+        if condition_type == "function_button_pressed":
+            self.function_button_pressed = state
+        elif condition_type == "y_param_dropdown_selected":
+            self.y_param_dropdown_selected = state
+
+        # Check if all conditions are met
+        self.update_continue_button_state()
+
+    def update_continue_button_state(self):
+        """Enable the 'Begin Optimization' button if all conditions are met."""
+        if self.function_button_pressed and self.y_param_dropdown_selected:
+            self.continue_button.config(state=tk.NORMAL)
+        else:
+            self.continue_button.config(state=tk.DISABLED)
 
     def on_optimization_type_change(self, event=None):
         selected_type = self.optimization_type_var.get()

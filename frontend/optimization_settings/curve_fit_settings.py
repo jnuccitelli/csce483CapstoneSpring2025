@@ -12,15 +12,17 @@ class input_type(Enum):
     UPLOAD = 3
 
 class CurveFitSettings(tk.Frame):
-    def __init__(self, parent: tk.Frame, parameters: List[str], nodes, controller: "AppController"):
+    def __init__(self, parent: tk.Frame, parameters: List[str], nodes, controller: "AppController", inputs_completed_callback=None):
         super().__init__(parent)
         self.controller = controller
+        self.inputs_completed_callback = inputs_completed_callback
         self.parameters = parameters
         self.nodes = nodes
         self.x_parameter_expression_var = tk.StringVar()
         self.y_parameter_expression_var = tk.StringVar()
         self.frames = {}
         self.generated_data = None
+        self.inputs_completed = False
 
         
         # --- combobox for: line input vs heavyside vs custom csv
@@ -188,6 +190,9 @@ class CurveFitSettings(tk.Frame):
             self.controller.update_app_data("generated_data", self.generated_data)
             # print("Generated LINE data:", self.generated_data)
 
+            if self.inputs_completed_callback:
+                self.inputs_completed_callback("function_button_pressed", True)
+
         elif in_type == input_type.HEAVISIDE:
             amplitude = float(arg1.get())
             x_start = float(arg2.get())
@@ -202,6 +207,9 @@ class CurveFitSettings(tk.Frame):
             self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
             self.controller.update_app_data("generated_data", self.generated_data)
             # print("Generated HEAVISIDE data:", self.generated_data)
+
+            if self.inputs_completed_callback:
+                self.inputs_completed_callback("function_button_pressed", True)
 
         else:
             return # this function should never be called if the type was anything other than LINE or HEAVISIDE (i.e. it could not be called if type was UPLOAD)
@@ -243,6 +251,10 @@ class CurveFitSettings(tk.Frame):
             # print("Uploaded data:", self.uploaded_data)
             # self.plot_data() #refresh plot w data, if we actually wanna plot
             # use the data_points list for further processing or plotting
+
+            if self.inputs_completed_callback:
+                self.inputs_completed_callback("function_button_pressed", True)
+
         except FileNotFoundError:
             print("File not found.")
         except Exception as e:
@@ -264,6 +276,9 @@ class CurveFitSettings(tk.Frame):
 
     def on_y_parameter_selected(self, event=None):
         self.y_parameter_expression_var.set("")
+        if self.y_parameter_dropdown.get():  # If something is selected
+            if self.inputs_completed_callback:
+                self.inputs_completed_callback("y_param_dropdown_selected", True)
 
     def get_settings(self) -> Dict[str, Any]:
         settings = {
