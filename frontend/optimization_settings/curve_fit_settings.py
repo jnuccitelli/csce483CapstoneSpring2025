@@ -114,7 +114,7 @@ class CurveFitSettings(tk.Frame):
         tk.Label(line_frame, text="to x = ").pack(side=tk.LEFT)
         line_end_x = tk.Entry(line_frame, width=5)
         line_end_x.pack(side=tk.LEFT)
-        self.line_button = tk.Button(line_frame, text="Add Line", command=lambda: self.add_function(input_type.LINE, line_slope, line_intercept, line_start_x, line_end_x))
+        self.line_button = ttk.Button(line_frame, text="Add Line", command=lambda: self.add_function(input_type.LINE, line_slope, line_intercept, line_start_x, line_end_x))
         self.line_button.pack(side=tk.LEFT, padx=10)
         self.custom_functions = []
 
@@ -132,7 +132,7 @@ class CurveFitSettings(tk.Frame):
         tk.Label(heaviside_frame, text="to x = ").pack(side=tk.LEFT)
         heaviside_end_x = tk.Entry(heaviside_frame, width=5)
         heaviside_end_x.pack(side=tk.LEFT)
-        self.heaviside_button = tk.Button(heaviside_frame, text="Add Heaviside", command=lambda:
+        self.heaviside_button = ttk.Button(heaviside_frame, text="Add Heaviside", command=lambda:
                    self.add_function(input_type.HEAVISIDE, heaviside_amplitude, heaviside_start_x, heaviside_end_x,""))
         self.heaviside_button.pack(side=tk.LEFT, padx=10)
         
@@ -142,7 +142,7 @@ class CurveFitSettings(tk.Frame):
         # --- Curve Fit File Picker ---
         upload_frame = tk.Frame(self.select_input_type_frame)
         upload_frame.pack()
-        curve_fit_button = tk.Button(upload_frame, text="Select Curve File", command=self.select_curve_file_and_process)
+        curve_fit_button = ttk.Button(upload_frame, text="Select Curve File", command=self.select_curve_file_and_process)
         curve_fit_button.pack(side=tk.LEFT, padx=10)
 
         self.curve_file_path_var = tk.StringVar(value="")
