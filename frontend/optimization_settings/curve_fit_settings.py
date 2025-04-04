@@ -81,6 +81,7 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_var = tk.StringVar()
 
         y_param_frame = ttk.Frame(self)
+        y_param_frame.pack(side=tk.LEFT)
         self.y_parameter_dropdown = ttk.Combobox(
             y_param_frame,
             textvariable=self.y_parameter_var,
@@ -92,7 +93,7 @@ class CurveFitSettings(tk.Frame):
             "<<ComboboxSelected>>", self.on_y_parameter_selected
         )
 
-        y_param_frame.pack(side=tk.LEFT)
+       
 
     
     def create_line_frame(self):
