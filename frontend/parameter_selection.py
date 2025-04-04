@@ -101,6 +101,23 @@ class ParameterSelectionWindow(tk.Frame):
         )
         self.continue_button.pack(side=tk.RIGHT, padx=5)  # Pack on the RIGHT
 
+###############################################################################
+ # select all & remove all #
+
+        self.select_all_button = ttk.Button(
+            self.buttons_frame, text="Select All ->", command=self.select_all_parameters
+        )
+        self.select_all_button.pack(pady=5)
+
+        self.remove_all_button = ttk.Button(
+            self.buttons_frame, text="<- Remove All", command=self.remove_all_parameters
+        )
+        self.remove_all_button.pack(pady=5)
+
+    # select all & remove all #
+###############################################################################
+
+
         # Load and parse parameters when the window is created
         if self.netlist_path:
             self.load_and_parse_parameters(self.netlist_path)
@@ -186,3 +203,36 @@ class ParameterSelectionWindow(tk.Frame):
         self.controller.update_app_data("nodes", self.nodes)
         # Placeholder for now
         self.controller.navigate("optimization_settings")
+
+    ###############################################################################
+    # select all & remove all #
+
+    def select_all_parameters(self):
+        for param in list(self.available_parameters):  
+            if param not in self.selected_parameters:
+                self.selected_parameters.append(param)
+                for component in self.netlist.components:
+                    if component.name == param:
+                        component.variable = True
+                        break
+        self.available_parameters.clear()
+        self.update_available_listbox()
+        self.update_selected_listbox()
+        if self.selected_parameters:
+            self.continue_button.config(state=tk.NORMAL)
+
+    def remove_all_parameters(self):
+        for param in list(self.selected_parameters):
+            self.available_parameters.append(param)
+            for component in self.netlist.components:
+                if component.name == param:
+                    component.variable = False
+                    break
+        self.selected_parameters.clear()
+        self.update_available_listbox()
+        self.update_selected_listbox()
+        self.continue_button.config(state=tk.DISABLED)
+
+     # select all & remove all #
+    ###############################################################################
+

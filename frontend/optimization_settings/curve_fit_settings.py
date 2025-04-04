@@ -104,22 +104,22 @@ class CurveFitSettings(tk.Frame):
         ####################################################
 
         # Add Select all OR Remove all parameters buttons below the Y parameter dropdown
-        select_buttons_frame = ttk.Frame(self)
-        select_buttons_frame.pack(pady=5, side=tk.TOP)
+        # select_buttons_frame = ttk.Frame(self)
+        # select_buttons_frame.pack(pady=5, side=tk.TOP)
 
-        select_all_button = ttk.Button(
-            select_buttons_frame,
-            text="Select All Parameters",
-            command=self.select_all_parameters
-        )
-        select_all_button.pack(side=tk.LEFT, padx=5)
+        # select_all_button = ttk.Button(
+        #     select_buttons_frame,
+        #     text="Select All Parameters",
+        #     command=self.select_all_parameters
+        # )
+        # select_all_button.pack(side=tk.LEFT, padx=5)
 
-        remove_all_button = ttk.Button(
-            select_buttons_frame,
-            text="Remove All Parameters",
-            command=self.remove_all_parameters
-        )
-        remove_all_button.pack(side=tk.LEFT, padx=5)
+        # remove_all_button = ttk.Button(
+        #     select_buttons_frame,
+        #     text="Remove All Parameters",
+        #     command=self.remove_all_parameters
+        # )
+        # remove_all_button.pack(side=tk.LEFT, padx=5)
 
         ####################################################
     
@@ -323,12 +323,12 @@ class CurveFitSettings(tk.Frame):
 ####################################################
 
 
-    def select_all_parameters(self):
-        """ Select all parameters in the dropdown. """
-        self.y_parameter_var.set(", ".join([f"V({node})" for node in self.nodes]))
+    # def select_all_parameters(self):
+    #     """ Select all parameters in the dropdown. """
+    #     self.y_parameter_var.set(", ".join([f"V({node})" for node in self.nodes]))
 
-    def remove_all_parameters(self):
-        """ Remove all selected parameters. """
-        self.y_parameter_var.set("")
+    # def remove_all_parameters(self):
+    #     """ Remove all selected parameters. """
+    #     self.y_parameter_var.set("")
 
 ####################################################
