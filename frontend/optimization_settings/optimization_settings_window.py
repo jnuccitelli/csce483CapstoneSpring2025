@@ -192,7 +192,7 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
-
+###########################################################################################################################################
         #SET VARIABLES FOR OPTIMIZATION
         curveData = self.controller.get_app_data("optimization_settings")
         print(f"curveData = {curveData}")
@@ -203,7 +203,7 @@ class OptimizationSettingsWindow(tk.Frame):
         NETLIST = self.controller.get_app_data("netlist_object")
         WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
         #NODE CONSTRAINTS NOT IMPLENTED RN
-        NODE_CONSTRAINTS = self.add_node_constraints(curveData["node_constraints"]) #curveData["node_constraints"] does not actually exist yet
+        NODE_CONSTRAINTS = self.add_node_constraints(curveData["constraints"]) #curveData["node_constraints"] does not actually exist yet
 
         print(f"TARGET_VALUE = {TARGET_VALUE}")
         print(f"ORIG_NETLIST_PATH = {ORIG_NETLIST_PATH}")
@@ -233,6 +233,7 @@ class OptimizationSettingsWindow(tk.Frame):
         self.controller.update_app_data("netlist_object", NETLIST)
         self.controller.update_app_data("optimization_results", optim)
         print(f"Optimization Results: {optim}")
+###########################################################################################################################################
         self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
@@ -259,41 +260,44 @@ class OptimizationSettingsWindow(tk.Frame):
         equalConstraints = []
         for constraint in constraints:
             #Parse out  components
-            left = constraint["left"].strip()
-            right = constraint["right"].strip()
+            if constraint["type"] == "parameter":
+                left = constraint["left"].strip()
+                right = constraint["right"].strip()
 
-            componentVals = {}
-            for component in netlist.components:
-                componentVals[component.name] = component.value
-            for component in netlist.components:
-                if left == component.name:
-                    match constraint["operator"]:
-                        case ">=":
-                            component.minVal = eval(right, componentVals)
-                            print(f"{component.name} minVal set to {component.minVal}")
-                        case "=":
-                            component.value = eval(right, componentVals)
-                            component.variable = False
-                            component.modified = True
-                            equalConstraints.append(constraint)
-                            print(f"{component.name} set to {component.value}")
-                        case "<=":
-                            component.maxVal = eval(right, componentVals)
-                            print(f"{component.name} maxVal set to {component.maxVal}")
-                    break
+                componentVals = {}
+                for component in netlist.components:
+                    componentVals[component.name] = component.value
+                for component in netlist.components:
+                    if left == component.name:
+                        match constraint["operator"]:
+                            case ">=":
+                                component.minVal = eval(right, componentVals)
+                                print(f"{component.name} minVal set to {component.minVal}")
+                            case "=":
+                                component.value = eval(right, componentVals)
+                                component.variable = False
+                                component.modified = True
+                                equalConstraints.append(constraint)
+                                print(f"{component.name} set to {component.value}")
+                            case "<=":
+                                component.maxVal = eval(right, componentVals)
+                                print(f"{component.name} maxVal set to {component.maxVal}")
+                        break
         return equalConstraints
     
     def add_node_constraints(self, constraints):
         formattedNodeConstraints = {}
         nodes = {}
         for constraint in constraints:
-            nodes[constraint["left"].strip()] = [None,None]
+            if constraint["type"] == "node":
+                nodes[constraint["left"].strip()] = [None,None]
         for constraint in constraints:
-             match constraint["operator"]:
-                        case ">=":
-                            nodes[constraint["left"].strip()][0] = float(constraint["right"].strip())
-                        case "<=":
-                            nodes[constraint["left"].strip()][1] = float(constraint["right"].strip())
+            if constraint["type"] == "node":
+                match constraint["operator"]:
+                            case ">=":
+                                nodes[constraint["left"].strip()][0] = float(constraint["right"].strip())
+                            case "<=":
+                                nodes[constraint["left"].strip()][1] = float(constraint["right"].strip())
         for node in nodes:
             formattedNodeConstraints[node] = (nodes[node][0],nodes[node][1])
             #left = constraint["left"].strip()
