@@ -10,6 +10,7 @@ from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
 from ..utils import import_constraints_from_file, export_constraints_to_file
 from backend.curvefit_optimization import curvefit_optimize
+#from .expression_evaluator import ExpressionEvaluator
 
 
 class OptimizationSettingsWindow(tk.Frame):
@@ -213,7 +214,7 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
-
+###########################################################################################################################################
         #SET VARIABLES FOR OPTIMIZATION
         curveData = self.controller.get_app_data("optimization_settings")
         print(f"curveData = {curveData}")
@@ -224,7 +225,7 @@ class OptimizationSettingsWindow(tk.Frame):
         NETLIST = self.controller.get_app_data("netlist_object")
         WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
         #NODE CONSTRAINTS NOT IMPLENTED RN
-        NODE_CONSTRAINTS = {}
+        NODE_CONSTRAINTS = self.add_node_constraints(curveData["constraints"]) #curveData["node_constraints"] does not actually exist yet
 
         print(f"TARGET_VALUE = {TARGET_VALUE}")
         print(f"ORIG_NETLIST_PATH = {ORIG_NETLIST_PATH}")
@@ -238,8 +239,8 @@ class OptimizationSettingsWindow(tk.Frame):
                 component.variable = True
 
         #ADD IN INITIAL CONSTRAINTS TO NETLIST CLASS VIA MINVAL MAXVAL
-        self.add_part_constraints(curveData["constraints"], NETLIST)
-
+        EQUALITY_PART_CONSTRAINTS = self.add_part_constraints(curveData["constraints"], NETLIST)
+# GET NODE CONSTRAINTS IN THE FORM BRANDON EXPECTING
         #Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
         endValue = max([sublist[0] for sublist in TEST_ROWS])
         initValue = min([sublist[0] for sublist in TEST_ROWS])
@@ -247,13 +248,14 @@ class OptimizationSettingsWindow(tk.Frame):
         NETLIST.class_to_file(WRITABLE_NETLIST_PATH)
         NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE)
         #Optimization Call
-        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS)
+        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS, EQUALITY_PART_CONSTRAINTS)
         # print(type(optim))
 
         #Update AppData
         self.controller.update_app_data("netlist_object", NETLIST)
         self.controller.update_app_data("optimization_results", optim)
         print(f"Optimization Results: {optim}")
+###########################################################################################################################################
         self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
@@ -277,49 +279,50 @@ class OptimizationSettingsWindow(tk.Frame):
         export_constraints_to_file(self.constraints)
 
     def add_part_constraints(self,constraints, netlist):
-        def simplify_symbols(symbols):
-            if not symbols:
-                return []
-            
-            simplified = [symbols[0]]  # Start with the first symbol
-            
-            for i in range(1, len(symbols)):
-                if simplified[-1] == '-' and symbols[i] == '-':
-                    simplified[-1] = '+'  # "--" becomes "+"
-                elif (simplified[-1] == '+' and symbols[i] == '-') or (simplified[-1] == '-' and symbols[i] == '+'):
-                    simplified[-1] = '-'  # "+-" or "-+" becomes "-"
-                else:
-                    simplified.append(symbols[i])  # Otherwise, keep the symbol 
-            return simplified
-        # Current Approach: In the event of complex constraint (For example R1 + R2 >= R3 + R4) manipulate all minVal and maxVals to min and max solutions.
-        # For example, R1's minVal = R3 + R4 - R2. R2's minVal = R3 + R4 - R1. R3's maxVal = R1 + R2 - R4. R4's maxVal = R1 + R2 - R3.
-        # Not certain if this is the correct way to do so as it could cause incorrect functioning???
+        equalConstraints = []
         for constraint in constraints:
             #Parse out  components
-            left = constraint["left"].replace("+", " + ").replace("-", " - ").replace("*", " * ").replace("/", " / ")
-            right = constraint["right"].replace("+", " + ").replace("-", " - ").replace("*", " * ").replace("/", " / ")
+            if constraint["type"] == "parameter":
+                left = constraint["left"].strip()
+                right = constraint["right"].strip()
 
-            #Split to components and symbols
-            left = left.strip().split()
-            right = right.strip().split()
-
-            #Simplify symbols (- , - ==> + or +,- ==> - or -,+ ==> -)
-            preppedLeft = simplify_symbols(left)
-            preppedRight = simplify_symbols(right)
-            print(f"Constraint Left piece: {left}")
-            print(f"Constraint Right piece: {right}")
-            print(f"Constraint Prepped Left piece: {preppedLeft}")
-            print(f"Constraint Prepped Right piece: {preppedRight}")
-
-            #TODO Maybe Put in terms of all positives (e.g. R1 - R2 >= R3 becomes R1 >= R3 + R2)
-
-            #TODO Set minVal and maxVals to min and max solutions. Use evaluator possibly.
-
-            match constraint["operator"]:
-                case ">=":
-                    #Set minVals of right
-                    print(constraint["operator"])
-                case "=":
-                    print(constraint["operator"])
-                case "<=":
-                    print(constraint["operator"])
+                componentVals = {}
+                for component in netlist.components:
+                    componentVals[component.name] = component.value
+                for component in netlist.components:
+                    if left == component.name:
+                        match constraint["operator"]:
+                            case ">=":
+                                component.minVal = eval(right, componentVals)
+                                print(f"{component.name} minVal set to {component.minVal}")
+                            case "=":
+                                component.value = eval(right, componentVals)
+                                component.variable = False
+                                component.modified = True
+                                equalConstraints.append(constraint)
+                                print(f"{component.name} set to {component.value}")
+                            case "<=":
+                                component.maxVal = eval(right, componentVals)
+                                print(f"{component.name} maxVal set to {component.maxVal}")
+                        break
+        return equalConstraints
+    
+    def add_node_constraints(self, constraints):
+        formattedNodeConstraints = {}
+        nodes = {}
+        for constraint in constraints:
+            if constraint["type"] == "node":
+                nodes[constraint["left"].strip()] = [None,None]
+        for constraint in constraints:
+            if constraint["type"] == "node":
+                match constraint["operator"]:
+                            case ">=":
+                                nodes[constraint["left"].strip()][0] = float(constraint["right"].strip())
+                            case "<=":
+                                nodes[constraint["left"].strip()][1] = float(constraint["right"].strip())
+        for node in nodes:
+            formattedNodeConstraints[node] = (nodes[node][0],nodes[node][1])
+            #left = constraint["left"].strip()
+            #right = float(constraint["right"].strip())
+            #formattedNodeConstraints[left] = (None,None)
+        return formattedNodeConstraints
