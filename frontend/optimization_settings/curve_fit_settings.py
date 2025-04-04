@@ -92,13 +92,13 @@ class CurveFitSettings(tk.Frame):
             "<<ComboboxSelected>>", self.on_y_parameter_selected
         )
 
-        y_expression_button = ttk.Button(
-            y_param_frame,
-            text="Expr...",
-            command=lambda: self.open_expression_dialog(is_x=False),
-        )
-        y_expression_button.pack(side=tk.LEFT)
-        y_param_frame.pack(side=tk.LEFT)
+        # y_expression_button = ttk.Button(
+        #     y_param_frame,
+        #     text="Expr...",
+        #     command=lambda: self.open_expression_dialog(is_x=False),
+        # )
+        # y_expression_button.pack(side=tk.LEFT)
+        # y_param_frame.pack(side=tk.LEFT)
 
 
         ####################################################
