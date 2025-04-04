@@ -97,26 +97,29 @@ class OptimizationSettingsWindow(tk.Frame):
 
         # --- Add, Remove, and Edit Buttons (within the ConstraintTable) ---
         self.button_frame = ttk.Frame(constraints_frame)  # Create a frame for buttons.
-        self.button_frame.pack(side=tk.TOP, anchor=tk.E)
+        self.button_frame.pack(side=tk.TOP, pady=5)
         add_constraint_button = ttk.Button(
             self.button_frame,
             text="Add Constraint",
             command=self.open_add_constraint_window,  # type: ignore
         )
-        add_constraint_button.pack(side=tk.LEFT, padx=2)
+        add_constraint_button.pack(side=tk.LEFT, padx=5)
 
         remove_constraint_button = ttk.Button(
             self.button_frame, text="Remove Constraint", command=self.remove_constraint
         )
-        remove_constraint_button.pack(side=tk.LEFT, padx=2)
+        remove_constraint_button.pack(side=tk.LEFT, padx=5)
 
         edit_constraint_button = ttk.Button(
             self.button_frame, text="Edit Constraint", command=self.edit_constraint
         )
-        edit_constraint_button.pack(side=tk.LEFT, padx=2)
+        edit_constraint_button.pack(side=tk.LEFT, padx=5)
+
+
         # --- Import/Export Buttons ---
         import_export_frame = ttk.Frame(constraints_frame)
-        import_export_frame.pack(side=tk.TOP)  # Corrected row/column
+
+        import_export_frame.pack(side=tk.TOP, pady=2) # Corrected row/column
 
         import_button = ttk.Button(
             import_export_frame,
@@ -132,19 +135,20 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         export_button.pack(side=tk.LEFT, padx=5)
 
+
         # --- Navigation Buttons ---
         navigation_frame = ttk.Frame(self)
-        navigation_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+        navigation_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
         back_button = ttk.Button(navigation_frame, text="Back", command=self.go_back)
-        back_button.pack(side=tk.LEFT, padx=5)
+        back_button.pack(side=tk.LEFT, padx=10, pady=10)
         self.continue_button = ttk.Button(
             navigation_frame,
             text="Begin Optimization",
             command=self.go_forward,
             state=tk.DISABLED,
         )
-        self.continue_button.pack(side=tk.RIGHT, padx=5)
+        self.continue_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
     def handle_curve_fit_conditions(self, condition_type, state):
         """Update flags based on inputs from CurveFitSettings."""

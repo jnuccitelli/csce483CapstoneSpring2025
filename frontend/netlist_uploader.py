@@ -32,7 +32,7 @@ class NetlistUploaderWindow(tk.Frame):
             command=self.go_to_next_window,
             state=tk.DISABLED,
         )
-        self.continue_button.pack(side=tk.RIGHT, pady=10)
+        self.continue_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
     def upload_netlist(self) -> None:
         """Handles the netlist upload process."""
