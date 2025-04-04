@@ -92,9 +92,6 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_dropdown.bind(
             "<<ComboboxSelected>>", self.on_y_parameter_selected
         )
-
-       
-
     
     def create_line_frame(self):
         line_frame = tk.Frame(self.select_input_type_frame)
@@ -213,8 +210,6 @@ class CurveFitSettings(tk.Frame):
         self.func_label = ttk.Label(self.see_inputted_functions, text=string_func)
         self.func_label.pack(side=tk.TOP, pady=5)
        
-
-
     def select_curve_file_and_process(self):
         file_path = filedialog.askopenfilename(
             title="Select a Curve File",
@@ -292,16 +287,3 @@ class CurveFitSettings(tk.Frame):
             settings["y_parameter"] = self.y_parameter_var.get()
         return settings
     
-
-####################################################
-
-
-    # def select_all_parameters(self):
-    #     """ Select all parameters in the dropdown. """
-    #     self.y_parameter_var.set(", ".join([f"V({node})" for node in self.nodes]))
-
-    # def remove_all_parameters(self):
-    #     """ Remove all selected parameters. """
-    #     self.y_parameter_var.set("")
-
-####################################################
