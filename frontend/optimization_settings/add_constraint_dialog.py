@@ -5,13 +5,19 @@ from .expression_evaluator import ExpressionEvaluator
 
 
 class AddConstraintDialog(tk.Toplevel):
-    def __init__(self, parent, parameters: List[str]):
+    def __init__(self, parent, parameters: List[str], node_expressions: List[str]):
         super().__init__(parent)
         self.title("Add Constraint")
         self.parameters = parameters
-        self.constraint: Optional[Dict[str, str]] = None  # Use Optional for clarity
-        self.evaluator = ExpressionEvaluator(parameters)
-
+        self.node_expressions = node_expressions
+        self.all_allowed_vars_display = (
+            parameters + node_expressions
+        )  # For error messages
+        self.constraint: Optional[Dict[str, str]] = None
+        # Pass the combined list to the evaluator
+        self.evaluator = ExpressionEvaluator(
+            parameters=parameters, node_expressions=node_expressions
+        )
         # --- Left Expression ---
         left_frame = ttk.Frame(self)
         left_frame.pack(side=tk.LEFT, padx=5, pady=5)
@@ -56,17 +62,50 @@ class AddConstraintDialog(tk.Toplevel):
         operator = self.operator_var.get()
         right = self.right_var.get().strip()
 
-        # Validate inputs
         if not left or not operator or not right:
             messagebox.showerror("Error", "All fields are required.")
             return
 
-        # Validate expressions
-        if not self.is_valid_input(left):
-            return
+        # --- NEW: Validate Left Side ---
+        # Check if 'left' is exactly one of the known parameters or node expressions
+        is_valid_left, left_vars = self.evaluator.validate_expression(left)
+        # We need a stricter check: is it *just* a name, and is that name allowed?
+        # Simple check: is the raw string in our allowed list?
+        if left not in (
+            self.parameters + self.node_expressions
+        ):  # Check against combined originals
+            allowed_examples = ", ".join(self.all_allowed_vars_display[:3]) + (
+                "..." if len(self.all_allowed_vars_display) > 3 else ""
+            )
+            messagebox.showerror(
+                "Validation Error",
+                f"Invalid left-hand side: '{left}'.\n\nMust be a single selected parameter or node expression.\n\nCurrently allowed: {allowed_examples}",
+                parent=self,
+            )
+            return  # --- END NEW ---
+
+        # --- Existing validation for Right Side (allow expressions or numbers) ---
         if not self.is_valid_input(right):
-            return
-        self.constraint = {"left": left, "operator": operator, "right": right}
+            return  # --- END Existing ---
+
+        # If all validation passes:
+        # In AddConstraintDialog.on_ok:
+        self.constraint = {
+            "left": left,
+            "operator": operator,
+            "right": right,
+        }  # Type added later in OptimizationSettingsWindow
+        self.destroy()
+
+        # In EditConstraintDialog.on_ok:
+        if self.constraint is not None:
+            self.constraint["left"] = left
+            self.constraint["operator"] = operator
+            self.constraint["right"] = right
+            # Type will be updated in OptimizationSettingsWindow after dialog closes
+        else:
+            # Fallback, though shouldn't happen in edit mode
+            self.constraint = {"left": left, "operator": operator, "right": right}
         self.destroy()
 
     def on_cancel(self):
@@ -74,24 +113,26 @@ class AddConstraintDialog(tk.Toplevel):
         self.destroy()
 
     def is_valid_input(self, input_str: str) -> bool:
-        """Validates an input string as either a valid expression or a number."""
-        # First, try to validate as an expression
+        """Validates the right-hand side string as either a valid expression or a number."""
+        # 1. Try to validate as an expression using the evaluator
         is_valid_expr, used_vars = self.evaluator.validate_expression(input_str)
-        if is_valid_expr:
-            # Check if all used variables are in the allowed parameters
-            for var in used_vars:
-                if var not in self.parameters:
-                    messagebox.showerror(
-                        "Error",
-                        f"Invalid variable '{var}' in expression.  Must be one of {self.parameters}",
-                    )
-                    return False
-            return True
 
-        # If not a valid expression, check if it's a valid number
+        if is_valid_expr:
+            # --- REMOVED REDUNDANT LOOP ---
+            # If validate_expression returned True, the variables used are already confirmed
+            # to be within the evaluator's allowed set (parameters + mangled nodes).
+            return True  # It's a valid expression
+
+        # 2. If not a valid expression, check if it's a valid number
         try:
-            float(input_str)  # Check if it can be a float
-            return True
+            # TODO: Enhance to handle SI units like '1k', '0.1u' if desired
+            float(input_str)
+            return True  # It's a valid number
         except ValueError:
-            messagebox.showerror("Error", f"Invalid expression or number: {input_str}")
+            # If it's neither a valid expression nor a valid number
+            messagebox.showerror(
+                "Validation Error",
+                f"Invalid right-hand side: '{input_str}'.\nMust be a valid number or expression using allowed terms.",
+                parent=self,
+            )
             return False

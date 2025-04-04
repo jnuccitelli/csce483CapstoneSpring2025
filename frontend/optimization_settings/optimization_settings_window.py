@@ -1,7 +1,7 @@
 import tkinter as tk
 import shutil
 from tkinter import ttk, messagebox
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from .add_constraint_dialog import AddConstraintDialog
 from .edit_constraint_dialog import EditConstraintDialog
 from .expression_dialog import ExpressionDialog
@@ -20,6 +20,16 @@ class OptimizationSettingsWindow(tk.Frame):
         self.selected_parameters = self.controller.get_app_data("selected_parameters")
         self.constraints: List[Dict[str, str]] = []
         self.nodes = self.controller.get_app_data("nodes")
+        self.node_voltage_expressions = [
+            f"V({node})" for node in self.nodes if node != "0"
+        ]  # Exclude ground node '0' typically
+
+        self.all_allowed_validation_vars = (
+            self.selected_parameters or []
+        ) + self.node_voltage_expressions
+        print(
+            f"Allowed Vars for Validation: {self.all_allowed_validation_vars}"
+        )  # For debugging
         self.function_button_pressed = False
         self.y_param_dropdown_selected = False
 
@@ -30,7 +40,9 @@ class OptimizationSettingsWindow(tk.Frame):
         # --- Optimization Type Dropdown ---
         optimization_type_frame = ttk.Frame(main_frame)
         optimization_type_frame.pack(side=tk.TOP, fill=tk.X)
-        optimization_type_label = ttk.Label(optimization_type_frame, text="Optimization Type:")
+        optimization_type_label = ttk.Label(
+            optimization_type_frame, text="Optimization Type:"
+        )
         optimization_type_label.pack(side=tk.LEFT, anchor=tk.W, pady=5)
 
         self.optimization_types = ["Maximize/Minimize", "Curve Fit"]
@@ -48,21 +60,33 @@ class OptimizationSettingsWindow(tk.Frame):
 
         # --- Settings Panels (Max/Min and Curve Fit) ---
         setting_panel_frame = ttk.Frame(main_frame)
+        # Pack this frame where the settings should appear
         setting_panel_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
-        self.curve_fit_settings = CurveFitSettings(setting_panel_frame, self.selected_parameters, self.nodes, controller, inputs_completed_callback=self.handle_curve_fit_conditions)
-        self.curve_fit_settings.pack(fill=tk.X) # Initial display
 
-        self.max_min_settings = MaxMinSettings(setting_panel_frame, self.selected_parameters)
+        # Instantiate CurveFitSettings, attaching it to the setting_panel_frame
+        # Make sure to include the inputs_completed_callback from the main branch version
+        self.curve_fit_settings = CurveFitSettings(
+            setting_panel_frame,
+            self.selected_parameters,
+            self.nodes,
+            controller,
+            inputs_completed_callback=self.handle_curve_fit_conditions,  # Keep this callback
+        )
+        # Pack the CurveFitSettings panel so it's visible
+        self.curve_fit_settings.pack(fill=tk.X)
+        self.max_min_settings = MaxMinSettings(
+            setting_panel_frame, self.selected_parameters
+        )
         self.max_min_settings.pack(fill=tk.X)
         self.max_min_settings.pack_forget()  # Initially hidden
-
-        
 
         # --- Constraints Table ---
         constraints_frame = ttk.Frame(main_frame)
         constraints_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
         constraints_label = ttk.Label(constraints_frame, text="Constraints:")
-        constraints_label.pack(side=tk.TOP, anchor=tk.W, pady=5) # Added a label, and constraints are row 2
+        constraints_label.pack(
+            side=tk.TOP, anchor=tk.W, pady=5
+        )  # Added a label, and constraints are row 2
 
         self.constraint_table = ConstraintTable(
             constraints_frame,
@@ -95,6 +119,7 @@ class OptimizationSettingsWindow(tk.Frame):
 
         # --- Import/Export Buttons ---
         import_export_frame = ttk.Frame(constraints_frame)
+
         import_export_frame.pack(side=tk.TOP, pady=2) # Corrected row/column
 
         import_button = ttk.Button(
@@ -119,7 +144,10 @@ class OptimizationSettingsWindow(tk.Frame):
         back_button = ttk.Button(navigation_frame, text="Back", command=self.go_back)
         back_button.pack(side=tk.LEFT, padx=10, pady=10)
         self.continue_button = ttk.Button(
-            navigation_frame, text="Begin Optimization", command=self.go_forward, state=tk.DISABLED
+            navigation_frame,
+            text="Begin Optimization",
+            command=self.go_forward,
+            state=tk.DISABLED,
         )
         self.continue_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
@@ -150,25 +178,75 @@ class OptimizationSettingsWindow(tk.Frame):
             self.curve_fit_settings.pack(fill=tk.BOTH, expand=True)
 
     def open_add_constraint_window(self):
-        dialog = AddConstraintDialog(self, self.selected_parameters)
+        dialog = AddConstraintDialog(
+            self, self.selected_parameters, self.node_voltage_expressions
+        )
         self.wait_window(dialog)
         if dialog.constraint:
             self.add_constraint(dialog.constraint)
 
-    def add_constraint(self, constraint: Dict[str, str]):
-        self.constraints.append(constraint)  # Store the constraint
-        self.constraint_table.add_constraint(
-            constraint
-        )  # add the constraint to the table
+    def _determine_constraint_type(self, left_expression: str) -> Optional[str]:
+        """Determines if the left side is a parameter or node expression."""
+        if left_expression in (self.selected_parameters or []):
+            return "parameter"
+        elif (
+            left_expression in self.node_voltage_expressions
+        ):  # Add checks for other node types if needed
+            return "node"
+        else:
+            # Could potentially be a more complex expression, but we're simplifying
+            # Check if it's *only* a known parameter or node expression
+            # You might need more robust parsing if left side can be complex later
+            is_valid_expr, used_vars = ExpressionEvaluator(
+                self.all_allowed_validation_vars
+            ).validate_expression(left_expression)
+            if is_valid_expr and len(used_vars) == 1:
+                if used_vars[0] in (self.selected_parameters or []):
+                    return "parameter"
+                if used_vars[0] in self.node_voltage_expressions:
+                    return "node"
+            return None  # Indicates an invalid or unsupported left-hand side format
+
+    def add_constraint(self, constraint_data: Dict[str, str]):
+        """Adds the constraint type and stores it."""
+        left_side = constraint_data.get("left", "")
+        constraint_type = self._determine_constraint_type(left_side)
+
+        if constraint_type is None:
+            messagebox.showerror(
+                "Error Adding Constraint",
+                f"Invalid left-hand side expression: '{left_side}'. Must be a single selected parameter or node expression (e.g., V(node)).",
+            )
+            return
+
+        # Add the type to the dictionary
+        constraint_data["type"] = constraint_type
+
+        self.constraints.append(constraint_data)  # Store the constraint with its type
+        print(f"Added Constraint: {constraint_data}")  # Debug
+        # Modify constraint_table.add_constraint to accept and potentially display the type
+        self.constraint_table.add_constraint(constraint_data)
 
     def open_edit_constraint_dialog(self, constraint: Dict[str, str], index: int):
-        dialog = EditConstraintDialog(self, self.selected_parameters, constraint)
+        dialog = EditConstraintDialog(
+            self, self.selected_parameters, self.node_voltage_expressions, constraint
+        )
         self.wait_window(dialog)  # Wait for dialog to close
         if dialog.constraint is not None:
-            # update the constraint list
-            self.constraints[index] = dialog.constraint
-            # Update constraint to table
-            self.constraint_table.update_constraint(index, dialog.constraint)
+            new_constraint = (
+                dialog.constraint
+            )  # Assume EditDialog updated its self.constraint
+            constraint_type = self._determine_constraint_type(new_constraint["left"])
+            if constraint_type is None:
+                messagebox.showerror(
+                    "Error", f"Invalid left-hand side: {new_constraint['left']}"
+                )
+                return
+            new_constraint["type"] = constraint_type  # Add/Update type
+            self.constraints[index] = new_constraint
+            self.constraint_table.update_constraint(
+                index, new_constraint
+            )  # Update table (needs type support)
 
     def remove_constraint(self):
         # get selected from treeview and index
@@ -204,6 +282,30 @@ class OptimizationSettingsWindow(tk.Frame):
         self.controller.navigate("parameter_selection")
 
     def go_forward(self):
+        # --- Get all constraints (they now include the 'type' key) ---
+        all_constraints = (
+            self.constraints
+        )  # List of dicts like {'left': 'R1', ..., 'type': 'parameter'}
+
+        # --- Separate constraints by type ---
+        parameter_constraints = [
+            c for c in all_constraints if c.get("type") == "parameter"
+        ]
+        node_constraints_from_ui = [
+            c for c in all_constraints if c.get("type") == "node"
+        ]
+        untyped_constraints = [
+            c for c in all_constraints if c.get("type") not in ["parameter", "node"]
+        ]
+
+        print(f"Found {len(parameter_constraints)} parameter constraints:")
+        # for pc in parameter_constraints: print(f"  {pc}")
+        print(f"Found {len(node_constraints_from_ui)} node constraints:")
+        # for nc in node_constraints_from_ui: print(f"  {nc}")
+        if untyped_constraints:
+            print(
+                f"Warning: Found {len(untyped_constraints)} constraints without a valid type."
+            )
         optimization_settings = {
             "optimization_type": self.optimization_type_var.get(),
             "constraints": self.constraints,
@@ -214,15 +316,17 @@ class OptimizationSettingsWindow(tk.Frame):
             optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
+
 ###########################################################################################################################################
         #SET VARIABLES FOR OPTIMIZATION
         curveData = self.controller.get_app_data("optimization_settings")
         print(f"curveData = {curveData}")
-        #Replace with self.controller.get_app_data("optimization_settings) stuff
+        # Replace with self.controller.get_app_data("optimization_settings) stuff
         TARGET_VALUE = curveData["y_parameter"]
         TEST_ROWS = self.controller.get_app_data("generated_data")
         ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
         NETLIST = self.controller.get_app_data("netlist_object")
+
         WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
         #NODE CONSTRAINTS NOT IMPLENTED RN
         NODE_CONSTRAINTS = self.add_node_constraints(curveData["constraints"]) #curveData["node_constraints"] does not actually exist yet
@@ -233,7 +337,7 @@ class OptimizationSettingsWindow(tk.Frame):
         print(f"NETLIST.file_path = {NETLIST.file_path}")
         print(f"WRIITABLE_NETLIST_PATH = {WRITABLE_NETLIST_PATH}")
 
-        #UPDATE NETLIST BASED ON OPTIMIZATION SETTINGS AND CONSTRAINTS
+        # UPDATE NETLIST BASED ON OPTIMIZATION SETTINGS AND CONSTRAINTS
         for component in NETLIST.components:
             if component.name in self.controller.get_app_data("selected_parameters"):
                 component.variable = True
@@ -242,6 +346,7 @@ class OptimizationSettingsWindow(tk.Frame):
         EQUALITY_PART_CONSTRAINTS = self.add_part_constraints(curveData["constraints"], NETLIST)
 # GET NODE CONSTRAINTS IN THE FORM BRANDON EXPECTING
         #Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
+
         endValue = max([sublist[0] for sublist in TEST_ROWS])
         initValue = min([sublist[0] for sublist in TEST_ROWS])
         shutil.copyfile(NETLIST.file_path, WRITABLE_NETLIST_PATH)
@@ -251,7 +356,7 @@ class OptimizationSettingsWindow(tk.Frame):
         optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS, EQUALITY_PART_CONSTRAINTS)
         # print(type(optim))
 
-        #Update AppData
+        # Update AppData
         self.controller.update_app_data("netlist_object", NETLIST)
         self.controller.update_app_data("optimization_results", optim)
         print(f"Optimization Results: {optim}")
