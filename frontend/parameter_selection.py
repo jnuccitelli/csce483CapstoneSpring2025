@@ -91,7 +91,7 @@ class ParameterSelectionWindow(tk.Frame):
         self.back_button = ttk.Button(
             self.navigation_frame, text="Back", command=self.go_back
         )
-        self.back_button.pack(side=tk.LEFT, padx=5)  # Pack on the LEFT
+        self.back_button.pack(side=tk.LEFT, padx=10, pady=10)  # Pack on the LEFT
 
         self.continue_button = ttk.Button(
             self.navigation_frame,
@@ -99,7 +99,7 @@ class ParameterSelectionWindow(tk.Frame):
             command=self.go_forward,
             state=tk.DISABLED,
         )
-        self.continue_button.pack(side=tk.RIGHT, padx=5)  # Pack on the RIGHT
+        self.continue_button.pack(side=tk.RIGHT, padx=10, pady=10)  # Pack on the RIGHT
 
         # Load and parse parameters when the window is created
         if self.netlist_path:
