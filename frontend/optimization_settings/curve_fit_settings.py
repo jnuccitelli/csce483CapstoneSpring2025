@@ -56,24 +56,6 @@ class CurveFitSettings(tk.Frame):
         x_param_label = ttk.Label(self, text="X Parameter: TIME , ")
         x_param_label.pack(side=tk.LEFT)
         self.x_parameter_var = tk.StringVar(value="TIME")
-        # x_param_frame = ttk.Frame(self)
-        # self.x_parameter_dropdown = ttk.Combobox(
-        #     x_param_frame,
-        #     textvariable=self.x_parameter_var,
-        #     values=["time"],  # Corrected to "time"
-        #     state="readonly",
-        # )
-        # self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
-        # self.x_parameter_dropdown.bind(
-        #     "<<ComboboxSelected>>", self.on_x_parameter_selected
-        # )
-        # x_expression_button = ttk.Button(
-        #     x_param_frame,
-        #     text="Expr...",
-        #     command=lambda: self.open_expression_dialog(is_x=True),
-        # )
-        # x_expression_button.pack(side=tk.LEFT)
-        # x_param_frame.pack(side=tk.LEFT, padx=5)
 
         y_param_label = ttk.Label(self, text="Y Parameter:")
         y_param_label.pack(side=tk.LEFT)
@@ -181,7 +163,6 @@ class CurveFitSettings(tk.Frame):
             y_values = slope * x_values + y_int
             self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
             self.controller.update_app_data("generated_data", self.generated_data)
-            # print("Generated LINE data:", self.generated_data)
 
             if self.inputs_completed_callback:
                 self.inputs_completed_callback("function_button_pressed", True)
@@ -199,7 +180,6 @@ class CurveFitSettings(tk.Frame):
             y_values = [amplitude if x >= x_start else 0 for x in x_values]
             self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
             self.controller.update_app_data("generated_data", self.generated_data)
-            # print("Generated HEAVISIDE data:", self.generated_data)
 
             if self.inputs_completed_callback:
                 self.inputs_completed_callback("function_button_pressed", True)
@@ -240,10 +220,6 @@ class CurveFitSettings(tk.Frame):
                         print(f"Skipping row: {row} - Invalid data format")
                         continue 
             self.controller.update_app_data("generated_data", data_points)
-            # self.generated_data = data_points  
-            # print("Uploaded data:", self.uploaded_data)
-            # self.plot_data() #refresh plot w data, if we actually wanna plot
-            # use the data_points list for further processing or plotting
 
             if self.inputs_completed_callback:
                 self.inputs_completed_callback("function_button_pressed", True)
