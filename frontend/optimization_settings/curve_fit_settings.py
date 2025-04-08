@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, messagebox, filedialog
 from typing import List, Dict, Any
 from .expression_dialog import ExpressionDialog
 import numpy as np
@@ -74,6 +74,18 @@ class CurveFitSettings(tk.Frame):
             "<<ComboboxSelected>>", self.on_y_parameter_selected
         )
     
+    def custom_x_inputs_are_valid(self, x_start, x_end) -> bool:
+        if (x_start < 0):
+            messagebox.showerror("Input Error", "The starting x value may NOT be less than 0.")
+            return False
+        if (x_end < 0):
+            messagebox.showerror("Input Error", "The ending x value may NOT be less than 0.")
+            return False
+        if (x_start > x_end):
+            messagebox.showerror("Input Error", "The starting x value may NOT be greater than the ending x value.")
+            return False
+        return True
+
     def create_line_frame(self):
         line_frame = tk.Frame(self.select_input_type_frame)
         line_frame.pack()
@@ -88,7 +100,7 @@ class CurveFitSettings(tk.Frame):
         line_start_x.pack(side=tk.LEFT)
         tk.Label(line_frame, text="to x = ").pack(side=tk.LEFT)
         line_end_x = tk.Entry(line_frame, width=5)
-        line_end_x.pack(side=tk.LEFT)
+        line_end_x.pack(side=tk.LEFT)        
         self.line_button = ttk.Button(line_frame, text="Add Line", command=lambda: self.add_function(input_type.LINE, line_slope, line_intercept, line_start_x, line_end_x))
         self.line_button.pack(side=tk.LEFT, padx=10)
         self.custom_functions = []
@@ -155,6 +167,9 @@ class CurveFitSettings(tk.Frame):
             x_start = float(arg3.get())
             x_end = float(arg4.get())
             
+            if (self.custom_x_inputs_are_valid(x_start, x_end) == False):
+                return
+            
             self.heaviside_button.config(state=tk.DISABLED) #disable the other button
             self.custom_functions.append((slope, y_int, x_start, x_end))
             string_func = f"LINE: y = ({slope})*x + {y_int}; from x = [{x_start} to {x_end}]"
@@ -171,6 +186,9 @@ class CurveFitSettings(tk.Frame):
             amplitude = float(arg1.get())
             x_start = float(arg2.get())
             x_end = float(arg3.get())
+
+            if (self.custom_x_inputs_are_valid(x_start, x_end) == False):
+                return
             
             self.line_button.config(state=tk.DISABLED) #disable the other button
             self.custom_functions.append((amplitude, x_start, x_end))
