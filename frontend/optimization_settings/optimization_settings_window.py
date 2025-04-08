@@ -207,7 +207,7 @@ class OptimizationSettingsWindow(tk.Frame):
         # if self.optimization_type_var.get() == "Maximize/Minimize":
         #     optimization_settings.update(self.max_min_settings.get_settings())
         # elif self.optimization_type_var.get() == "Curve Fit":
-        #     optimization_settings.update(self.curve_fit_settings.get_settings())
+        optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
 
