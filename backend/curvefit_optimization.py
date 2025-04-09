@@ -43,7 +43,8 @@ node_constraints = {
     'V(3)': (1.0, None)   # Example: V(3) must be >= 1V
 }
 """
-def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netlist, writable_netlist_path: str, node_constraints: dict, equality_part_constraints: list) -> None:
+
+def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netlist, writable_netlist_path: str, node_constraints: dict, equality_part_constraints: list,queue) -> None:
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()  # Redirect output
 
@@ -113,6 +114,11 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
             if run_state["first_run"]:
                 run_state["first_run"] = False
                 run_state["master_x_points"] = X_ARRAY_FROM_XYCE
+                print(run_state["master_x_points"])
+
+            if (xyceRuns % 5 == 0):
+                queue.put(("Update",f"total runs completed: {xyceRuns}"))
+                queue.put(("UpdateYData",Y_ARRAY_FROM_XYCE))
 
             xyce_interpolation = interp1d(X_ARRAY_FROM_XYCE, Y_ARRAY_FROM_XYCE)
 

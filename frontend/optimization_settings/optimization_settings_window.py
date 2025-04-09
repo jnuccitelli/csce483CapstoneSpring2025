@@ -1,5 +1,5 @@
 import tkinter as tk
-import shutil
+
 from tkinter import ttk, messagebox
 from typing import List, Dict, Any, Optional
 from .add_constraint_dialog import AddConstraintDialog
@@ -9,8 +9,6 @@ from .constraint_table import ConstraintTable
 from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
 from ..utils import import_constraints_from_file, export_constraints_to_file
-from backend.curvefit_optimization import curvefit_optimize
-#from .expression_evaluator import ExpressionEvaluator
 
 
 class OptimizationSettingsWindow(tk.Frame):
@@ -315,48 +313,6 @@ class OptimizationSettingsWindow(tk.Frame):
 
 ###########################################################################################################################################
         #SET VARIABLES FOR OPTIMIZATION
-        curveData = self.controller.get_app_data("optimization_settings")
-        print(f"curveData = {curveData}")
-        # Replace with self.controller.get_app_data("optimization_settings) stuff
-        TARGET_VALUE = curveData["y_parameter"]
-        TEST_ROWS = self.controller.get_app_data("generated_data")
-        ORIG_NETLIST_PATH = self.controller.get_app_data("netlist_path")
-        NETLIST = self.controller.get_app_data("netlist_object")
-
-        WRITABLE_NETLIST_PATH = ORIG_NETLIST_PATH[:-4]+"Copy.txt"
-        #NODE CONSTRAINTS NOT IMPLENTED RN
-        NODE_CONSTRAINTS = self.add_node_constraints(curveData["constraints"]) #curveData["node_constraints"] does not actually exist yet
-
-        print(f"TARGET_VALUE = {TARGET_VALUE}")
-        print(f"ORIG_NETLIST_PATH = {ORIG_NETLIST_PATH}")
-        print(f"NETLIST.components = {NETLIST.components}")
-        print(f"NETLIST.file_path = {NETLIST.file_path}")
-        print(f"WRIITABLE_NETLIST_PATH = {WRITABLE_NETLIST_PATH}")
-
-        # UPDATE NETLIST BASED ON OPTIMIZATION SETTINGS AND CONSTRAINTS
-        for component in NETLIST.components:
-            if component.name in self.controller.get_app_data("selected_parameters"):
-                component.variable = True
-
-        #ADD IN INITIAL CONSTRAINTS TO NETLIST CLASS VIA MINVAL MAXVAL
-        EQUALITY_PART_CONSTRAINTS = self.add_part_constraints(curveData["constraints"], NETLIST)
-# GET NODE CONSTRAINTS IN THE FORM BRANDON EXPECTING
-        #Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
-
-        endValue = max([sublist[0] for sublist in TEST_ROWS])
-        initValue = min([sublist[0] for sublist in TEST_ROWS])
-        shutil.copyfile(NETLIST.file_path, WRITABLE_NETLIST_PATH)
-        NETLIST.class_to_file(WRITABLE_NETLIST_PATH)
-        NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE)
-        #Optimization Call
-        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS, EQUALITY_PART_CONSTRAINTS)
-        # print(type(optim))
-
-        # Update AppData
-        self.controller.update_app_data("netlist_object", NETLIST)
-        self.controller.update_app_data("optimization_results", optim)
-        print(f"Optimization Results: {optim}")
-###########################################################################################################################################
         self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
