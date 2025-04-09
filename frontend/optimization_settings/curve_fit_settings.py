@@ -6,6 +6,7 @@ import numpy as np
 import csv
 from enum import Enum
 
+
 class input_type(Enum):
     LINE = 1
     HEAVISIDE = 2
@@ -189,8 +190,6 @@ class CurveFitSettings(tk.Frame):
         self.func_label = ttk.Label(self.see_inputted_functions, text=string_func)
         self.func_label.pack(side=tk.TOP, pady=5)
        
-
-
     def select_curve_file_and_process(self):
         file_path = filedialog.askopenfilename(
             title="Select a Curve File",
@@ -241,3 +240,4 @@ class CurveFitSettings(tk.Frame):
         settings["x_parameter"] = self.x_parameter_var.get()
         settings["y_parameter"] = self.y_parameter_var.get()
         return settings
+    
