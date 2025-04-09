@@ -96,8 +96,10 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
                         component.variable = False
                         component.modified = True
             
+
+            XYCE_EXECUTABLE_PATH = "/Users/geolan/XyceInstall/Serial/bin/Xyce" # Or wherever it is on macOS
             new_netlist.class_to_file(local_netlist_file)
-            subprocess.run(["Xyce", "-delim", "COMMA", "-quiet", local_netlist_file],
+            subprocess.run([XYCE_EXECUTABLE_PATH, "-delim", "COMMA", "-quiet", local_netlist_file],
     stdout=subprocess.PIPE,  # Capture stdout
     stderr=subprocess.PIPE)
 
