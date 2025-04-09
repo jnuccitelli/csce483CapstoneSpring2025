@@ -91,7 +91,7 @@ class ParameterSelectionWindow(tk.Frame):
         self.back_button = ttk.Button(
             self.navigation_frame, text="Back", command=self.go_back
         )
-        self.back_button.pack(side=tk.LEFT, padx=5)  # Pack on the LEFT
+        self.back_button.pack(side=tk.LEFT, padx=10, pady=10)  # Pack on the LEFT
 
         self.continue_button = ttk.Button(
             self.navigation_frame,
@@ -99,7 +99,24 @@ class ParameterSelectionWindow(tk.Frame):
             command=self.go_forward,
             state=tk.DISABLED,
         )
-        self.continue_button.pack(side=tk.RIGHT, padx=5)  # Pack on the RIGHT
+        self.continue_button.pack(side=tk.RIGHT, padx=10, pady=10)  # Pack on the RIGHT
+
+###############################################################################
+ # select all & remove all #
+
+        self.select_all_button = ttk.Button(
+            self.buttons_frame, text="Select All ->", command=self.select_all_parameters
+        )
+        self.select_all_button.pack(pady=5)
+
+        self.remove_all_button = ttk.Button(
+            self.buttons_frame, text="<- Remove All", command=self.remove_all_parameters
+        )
+        self.remove_all_button.pack(pady=5)
+
+    # select all & remove all #
+###############################################################################
+
 
         # Load and parse parameters when the window is created
         if self.netlist_path:
@@ -134,10 +151,12 @@ class ParameterSelectionWindow(tk.Frame):
 
         return parameters
 
+################# added sorted #################
     def update_available_listbox(self):
         self.available_listbox.delete(0, tk.END)
-        for param in self.available_parameters:
+        for param in sorted(self.available_parameters):
             self.available_listbox.insert(tk.END, param)
+################# ################# #################
 
     def update_selected_listbox(self):
         self.selected_listbox.delete(0, tk.END)
@@ -184,3 +203,36 @@ class ParameterSelectionWindow(tk.Frame):
         self.controller.update_app_data("nodes", self.nodes)
         # Placeholder for now
         self.controller.navigate("optimization_settings")
+
+    ###############################################################################
+    # select all & remove all #
+
+    def select_all_parameters(self):
+        for param in list(self.available_parameters):  
+            if param not in self.selected_parameters:
+                self.selected_parameters.append(param)
+                for component in self.netlist.components:
+                    if component.name == param:
+                        component.variable = True
+                        break
+        self.available_parameters.clear()
+        self.update_available_listbox()
+        self.update_selected_listbox()
+        if self.selected_parameters:
+            self.continue_button.config(state=tk.NORMAL)
+
+    def remove_all_parameters(self):
+        for param in list(self.selected_parameters):
+            self.available_parameters.append(param)
+            for component in self.netlist.components:
+                if component.name == param:
+                    component.variable = False
+                    break
+        self.selected_parameters.clear()
+        self.update_available_listbox()
+        self.update_selected_listbox()
+        self.continue_button.config(state=tk.DISABLED)
+
+     # select all & remove all #
+    ###############################################################################
+

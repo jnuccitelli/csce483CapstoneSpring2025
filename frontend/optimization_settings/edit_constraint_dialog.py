@@ -5,14 +5,23 @@ from .expression_evaluator import ExpressionEvaluator
 
 
 class EditConstraintDialog(tk.Toplevel):
-    def __init__(self, parent, parameters: List[str], constraint: Dict[str, str]):
+    def __init__(
+        self,
+        parent,
+        parameters: List[str],
+        node_expressions: List[str],
+        constraint: Dict[str, str],
+    ):
         super().__init__(parent)
         self.title("Edit Constraint")
         self.parameters = parameters
-        self.constraint: Optional[Dict[str, str]] = (
-            constraint  # Use Optional, might be None
+        self.node_expressions = node_expressions
+        self.all_allowed_vars_display = parameters + node_expressions
+        self.constraint: Optional[Dict[str, str]] = constraint
+        # Instantiate evaluator with separate lists
+        self.evaluator = ExpressionEvaluator(
+            parameters=parameters, node_expressions=node_expressions
         )
-        self.evaluator = ExpressionEvaluator(parameters)
 
         # --- Left Expression ---
         left_frame = ttk.Frame(self)
@@ -83,19 +92,26 @@ class EditConstraintDialog(tk.Toplevel):
         self.destroy()
 
     def is_valid_input(self, input_str: str) -> bool:
-        """Validates an input string as either a valid expression or a number."""
+        """Validates the right-hand side string as either a valid expression or a number."""
+        # 1. Try to validate as an expression using the evaluator
         is_valid_expr, used_vars = self.evaluator.validate_expression(input_str)
+
         if is_valid_expr:
-            for var in used_vars:
-                if var not in self.parameters:
-                    messagebox.showerror(
-                        "Error", f"Invalid variable '{var}' in expression."
-                    )
-                    return False
-            return True
+            # --- REMOVED REDUNDANT LOOP ---
+            # If validate_expression returned True, the variables used are already confirmed
+            # to be within the evaluator's allowed set (parameters + mangled nodes).
+            return True  # It's a valid expression
+
+        # 2. If not a valid expression, check if it's a valid number
         try:
+            # TODO: Enhance to handle SI units like '1k', '0.1u' if desired
             float(input_str)
-            return True
+            return True  # It's a valid number
         except ValueError:
-            messagebox.showerror("Error", f"Invalid expression or number: {input_str}")
+            # If it's neither a valid expression nor a valid number
+            messagebox.showerror(
+                "Validation Error",
+                f"Invalid right-hand side: '{input_str}'.\nMust be a valid number or expression using allowed terms.",
+                parent=self,
+            )
             return False

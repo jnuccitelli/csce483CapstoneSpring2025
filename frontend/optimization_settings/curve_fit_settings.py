@@ -1,10 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, messagebox, filedialog
 from typing import List, Dict, Any
 from .expression_dialog import ExpressionDialog
 import numpy as np
 import csv
 from enum import Enum
+
 
 class input_type(Enum):
     LINE = 1
@@ -56,30 +57,13 @@ class CurveFitSettings(tk.Frame):
         x_param_label = ttk.Label(self, text="X Parameter: TIME , ")
         x_param_label.pack(side=tk.LEFT)
         self.x_parameter_var = tk.StringVar(value="TIME")
-        # x_param_frame = ttk.Frame(self)
-        # self.x_parameter_dropdown = ttk.Combobox(
-        #     x_param_frame,
-        #     textvariable=self.x_parameter_var,
-        #     values=["time"],  # Corrected to "time"
-        #     state="readonly",
-        # )
-        # self.x_parameter_dropdown.pack(side=tk.LEFT, padx=5)
-        # self.x_parameter_dropdown.bind(
-        #     "<<ComboboxSelected>>", self.on_x_parameter_selected
-        # )
-        # x_expression_button = ttk.Button(
-        #     x_param_frame,
-        #     text="Expr...",
-        #     command=lambda: self.open_expression_dialog(is_x=True),
-        # )
-        # x_expression_button.pack(side=tk.LEFT)
-        # x_param_frame.pack(side=tk.LEFT, padx=5)
 
         y_param_label = ttk.Label(self, text="Y Parameter:")
         y_param_label.pack(side=tk.LEFT)
         self.y_parameter_var = tk.StringVar()
 
         y_param_frame = ttk.Frame(self)
+        y_param_frame.pack(side=tk.LEFT)
         self.y_parameter_dropdown = ttk.Combobox(
             y_param_frame,
             textvariable=self.y_parameter_var,
@@ -90,15 +74,19 @@ class CurveFitSettings(tk.Frame):
         self.y_parameter_dropdown.bind(
             "<<ComboboxSelected>>", self.on_y_parameter_selected
         )
-
-        y_expression_button = ttk.Button(
-            y_param_frame,
-            text="Expr...",
-            command=lambda: self.open_expression_dialog(is_x=False),
-        )
-        y_expression_button.pack(side=tk.LEFT)
-        y_param_frame.pack(side=tk.LEFT)
     
+    def custom_x_inputs_are_valid(self, x_start, x_end) -> bool:
+        if (x_start < 0):
+            messagebox.showerror("Input Error", "The starting x value may NOT be less than 0.")
+            return False
+        if (x_end < 0):
+            messagebox.showerror("Input Error", "The ending x value may NOT be less than 0.")
+            return False
+        if (x_start >= x_end):
+            messagebox.showerror("Input Error", "The starting x value may NOT be greater than the ending x value.")
+            return False
+        return True
+
     def create_line_frame(self):
         line_frame = tk.Frame(self.select_input_type_frame)
         line_frame.pack()
@@ -113,7 +101,7 @@ class CurveFitSettings(tk.Frame):
         line_start_x.pack(side=tk.LEFT)
         tk.Label(line_frame, text="to x = ").pack(side=tk.LEFT)
         line_end_x = tk.Entry(line_frame, width=5)
-        line_end_x.pack(side=tk.LEFT)
+        line_end_x.pack(side=tk.LEFT)        
         self.line_button = ttk.Button(line_frame, text="Add Line", command=lambda: self.add_function(input_type.LINE, line_slope, line_intercept, line_start_x, line_end_x))
         self.line_button.pack(side=tk.LEFT, padx=10)
         self.custom_functions = []
@@ -180,6 +168,9 @@ class CurveFitSettings(tk.Frame):
             x_start = float(arg3.get())
             x_end = float(arg4.get())
             
+            if (self.custom_x_inputs_are_valid(x_start, x_end) == False):
+                return
+            
             self.heaviside_button.config(state=tk.DISABLED) #disable the other button
             self.custom_functions.append((slope, y_int, x_start, x_end))
             string_func = f"LINE: y = ({slope})*x + {y_int}; from x = [{x_start} to {x_end}]"
@@ -188,7 +179,6 @@ class CurveFitSettings(tk.Frame):
             y_values = slope * x_values + y_int
             self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
             self.controller.update_app_data("generated_data", self.generated_data)
-            # print("Generated LINE data:", self.generated_data)
 
             if self.inputs_completed_callback:
                 self.inputs_completed_callback("function_button_pressed", True)
@@ -197,6 +187,9 @@ class CurveFitSettings(tk.Frame):
             amplitude = float(arg1.get())
             x_start = float(arg2.get())
             x_end = float(arg3.get())
+
+            if (self.custom_x_inputs_are_valid(x_start, x_end) == False):
+                return
             
             self.line_button.config(state=tk.DISABLED) #disable the other button
             self.custom_functions.append((amplitude, x_start, x_end))
@@ -206,7 +199,6 @@ class CurveFitSettings(tk.Frame):
             y_values = [amplitude if x >= x_start else 0 for x in x_values]
             self.generated_data = [[float(x), float(y)] for x, y in zip(x_values, y_values)]
             self.controller.update_app_data("generated_data", self.generated_data)
-            # print("Generated HEAVISIDE data:", self.generated_data)
 
             if self.inputs_completed_callback:
                 self.inputs_completed_callback("function_button_pressed", True)
@@ -216,8 +208,6 @@ class CurveFitSettings(tk.Frame):
         self.func_label = ttk.Label(self.see_inputted_functions, text=string_func)
         self.func_label.pack(side=tk.TOP, pady=5)
        
-
-
     def select_curve_file_and_process(self):
         file_path = filedialog.askopenfilename(
             title="Select a Curve File",
@@ -247,10 +237,6 @@ class CurveFitSettings(tk.Frame):
                         print(f"Skipping row: {row} - Invalid data format")
                         continue 
             self.controller.update_app_data("generated_data", data_points)
-            # self.generated_data = data_points  
-            # print("Uploaded data:", self.uploaded_data)
-            # self.plot_data() #refresh plot w data, if we actually wanna plot
-            # use the data_points list for further processing or plotting
 
             if self.inputs_completed_callback:
                 self.inputs_completed_callback("function_button_pressed", True)
@@ -260,22 +246,7 @@ class CurveFitSettings(tk.Frame):
         except Exception as e:
             print(f"Error processing CSV file: {e}")
 
-    def open_expression_dialog(self, is_x=False):
-        dialog = ExpressionDialog(self, self.parameters)
-        self.wait_window(dialog)
-        if dialog.expression:
-            if is_x:
-                self.x_parameter_expression_var.set(dialog.expression)
-                self.x_parameter_var.set(f"Expr: {dialog.expression}")
-            else:
-                self.y_parameter_expression_var.set(dialog.expression)
-                self.y_parameter_var.set(f"Expr: {dialog.expression}")
-
-    def on_x_parameter_selected(self, event=None):
-        self.x_parameter_expression_var.set("")
-
     def on_y_parameter_selected(self, event=None):
-        self.y_parameter_expression_var.set("")
         if self.y_parameter_dropdown.get():  # If something is selected
             if self.inputs_completed_callback:
                 self.inputs_completed_callback("y_param_dropdown_selected", True)
@@ -284,13 +255,7 @@ class CurveFitSettings(tk.Frame):
         settings = {
             "curve_file": self.curve_file_path_var.get(),
         }
-        if self.x_parameter_expression_var.get():
-            settings["x_parameter_expression"] = self.x_parameter_expression_var.get()
-        else:
-            settings["x_parameter"] = self.x_parameter_var.get()
-
-        if self.y_parameter_expression_var.get():
-            settings["y_parameter_expression"] = self.y_parameter_expression_var.get()
-        else:
-            settings["y_parameter"] = self.y_parameter_var.get()
+        settings["x_parameter"] = self.x_parameter_var.get()
+        settings["y_parameter"] = self.y_parameter_var.get()
         return settings
+    
