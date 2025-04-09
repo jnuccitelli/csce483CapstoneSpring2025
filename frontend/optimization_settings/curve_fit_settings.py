@@ -81,7 +81,7 @@ class CurveFitSettings(tk.Frame):
         if (x_end < 0):
             messagebox.showerror("Input Error", "The ending x value may NOT be less than 0.")
             return False
-        if (x_start > x_end):
+        if (x_start >= x_end):
             messagebox.showerror("Input Error", "The starting x value may NOT be greater than the ending x value.")
             return False
         return True
