@@ -45,7 +45,7 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         optimization_type_label.pack(side=tk.LEFT, anchor=tk.W, pady=5)
 
-        self.optimization_types = ["Maximize/Minimize", "Curve Fit"]
+        self.optimization_types = ["Curve Fit"] #"Maximize/Minimize", 
         self.optimization_type_var = tk.StringVar(value="Curve Fit")
         optimization_type_dropdown = ttk.Combobox(
             optimization_type_frame,
@@ -58,10 +58,11 @@ class OptimizationSettingsWindow(tk.Frame):
             "<<ComboboxSelected>>", self.on_optimization_type_change
         )
 
-        # --- Settings Panels (Max/Min and Curve Fit) ---
+        # # --- Settings Panels (Max/Min and Curve Fit) ---
         setting_panel_frame = ttk.Frame(main_frame)
         # Pack this frame where the settings should appear
         setting_panel_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+
 
         # Instantiate CurveFitSettings, attaching it to the setting_panel_frame
         # Make sure to include the inputs_completed_callback from the main branch version
@@ -74,11 +75,9 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         # Pack the CurveFitSettings panel so it's visible
         self.curve_fit_settings.pack(fill=tk.X)
-        self.max_min_settings = MaxMinSettings(
-            setting_panel_frame, self.selected_parameters
-        )
-        self.max_min_settings.pack(fill=tk.X)
-        self.max_min_settings.pack_forget()  # Initially hidden
+        # self.max_min_settings = MaxMinSettings(setting_panel_frame, self.selected_parameters)
+        # self.max_min_settings.pack(fill=tk.X)
+        # self.max_min_settings.pack_forget()  # Initially hidden
 
         # --- Constraints Table ---
         constraints_frame = ttk.Frame(main_frame)
@@ -98,29 +97,27 @@ class OptimizationSettingsWindow(tk.Frame):
 
         # --- Add, Remove, and Edit Buttons (within the ConstraintTable) ---
         self.button_frame = ttk.Frame(constraints_frame)  # Create a frame for buttons.
-        self.button_frame.pack(side=tk.TOP, pady=5)
+        self.button_frame.pack(side=tk.TOP, anchor=tk.E)
         add_constraint_button = ttk.Button(
             self.button_frame,
             text="Add Constraint",
             command=self.open_add_constraint_window,  # type: ignore
         )
-        add_constraint_button.pack(side=tk.LEFT, padx=5)
+        add_constraint_button.pack(side=tk.LEFT, padx=2)
 
         remove_constraint_button = ttk.Button(
             self.button_frame, text="Remove Constraint", command=self.remove_constraint
         )
-        remove_constraint_button.pack(side=tk.LEFT, padx=5)
+        remove_constraint_button.pack(side=tk.LEFT, padx=2)
 
         edit_constraint_button = ttk.Button(
             self.button_frame, text="Edit Constraint", command=self.edit_constraint
         )
-        edit_constraint_button.pack(side=tk.LEFT, padx=5)
-
-
+        edit_constraint_button.pack(side=tk.LEFT, padx=2)
         # --- Import/Export Buttons ---
         import_export_frame = ttk.Frame(constraints_frame)
+        import_export_frame.pack(side=tk.TOP) # Corrected row/column
 
-        import_export_frame.pack(side=tk.TOP, pady=2) # Corrected row/column
 
         import_button = ttk.Button(
             import_export_frame,
@@ -136,20 +133,19 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         export_button.pack(side=tk.LEFT, padx=5)
 
-
         # --- Navigation Buttons ---
         navigation_frame = ttk.Frame(self)
-        navigation_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        navigation_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
 
         back_button = ttk.Button(navigation_frame, text="Back", command=self.go_back)
-        back_button.pack(side=tk.LEFT, padx=10, pady=10)
+        back_button.pack(side=tk.LEFT, padx=5)
         self.continue_button = ttk.Button(
             navigation_frame,
             text="Begin Optimization",
             command=self.go_forward,
             state=tk.DISABLED,
         )
-        self.continue_button.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.continue_button.pack(side=tk.RIGHT, padx=5)
 
     def handle_curve_fit_conditions(self, condition_type, state):
         """Update flags based on inputs from CurveFitSettings."""
@@ -170,12 +166,12 @@ class OptimizationSettingsWindow(tk.Frame):
 
     def on_optimization_type_change(self, event=None):
         selected_type = self.optimization_type_var.get()
-        if selected_type == "Maximize/Minimize":
-            self.curve_fit_settings.pack_forget()
-            self.max_min_settings.pack(fill=tk.BOTH, expand=True)
-        elif selected_type == "Curve Fit":
-            self.max_min_settings.pack_forget()
-            self.curve_fit_settings.pack(fill=tk.BOTH, expand=True)
+    #     if selected_type == "Maximize/Minimize":
+    #         self.curve_fit_settings.pack_forget()
+    #         self.max_min_settings.pack(fill=tk.BOTH, expand=True)
+    #     elif selected_type == "Curve Fit":
+    #         self.max_min_settings.pack_forget()
+    #         self.curve_fit_settings.pack(fill=tk.BOTH, expand=True)
 
     def open_add_constraint_window(self):
         dialog = AddConstraintDialog(
@@ -310,10 +306,10 @@ class OptimizationSettingsWindow(tk.Frame):
             "optimization_type": self.optimization_type_var.get(),
             "constraints": self.constraints,
         }
-        if self.optimization_type_var.get() == "Maximize/Minimize":
-            optimization_settings.update(self.max_min_settings.get_settings())
-        elif self.optimization_type_var.get() == "Curve Fit":
-            optimization_settings.update(self.curve_fit_settings.get_settings())
+        # if self.optimization_type_var.get() == "Maximize/Minimize":
+        #     optimization_settings.update(self.max_min_settings.get_settings())
+        # elif self.optimization_type_var.get() == "Curve Fit":
+        optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
 
