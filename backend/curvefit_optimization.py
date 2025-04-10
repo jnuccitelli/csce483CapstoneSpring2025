@@ -1,5 +1,4 @@
 import numpy as np
-import shutil
 import subprocess
 import io
 import sys
@@ -121,8 +120,11 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
 
             xyce_interpolation = interp1d(X_ARRAY_FROM_XYCE, Y_ARRAY_FROM_XYCE)
 
+            #sys.stdout = old_stdout
+            #print(f"Xyce parse data is {xyce_parse[1]}")
+
             for node_name, (node_lower, node_upper) in node_constraints.items():
-                node_index = xyce_parse[0].index(node_name)
+                node_index = xyce_parse[0].index(node_name.upper())
                 node_values = np.array([float(x[node_index]) for x in xyce_parse[1]])
                 if (node_lower is not None and np.any(node_values < node_lower)) or (node_upper is not None and np.any(node_values > node_upper)):
                     return np.full_like(run_state["master_x_points"], 1e6)  # Large penalty
@@ -149,7 +151,13 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
 
         sys.stdout.flush()
         captured = sys.stdout.getvalue()
-        line = captured.split("\n")[1]
+        #sys.stdout = old_stdout
+        #print("CAPTURED OUTPUT:")
+        #print(captured)
+        lines = captured.split("\n")
+        #print("CHOSEN LINE:")
+        line = next((item for item in lines if item.startswith("Function evaluations")), None)
+        #print(line)
         values = line.split()
         leastSquaresIterations = int(values[2].rstrip(","))
         initialCost = float(values[5].rstrip(","))
