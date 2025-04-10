@@ -116,7 +116,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
 
             if (xyceRuns % 5 == 0):
                 queue.put(("Update",f"total runs completed: {xyceRuns}"))
-            queue.put(("UpdateYData",Y_ARRAY_FROM_XYCE))
+            queue.put(("UpdateYData",(X_ARRAY_FROM_XYCE,Y_ARRAY_FROM_XYCE))) 
 
             xyce_interpolation = interp1d(X_ARRAY_FROM_XYCE, Y_ARRAY_FROM_XYCE)
 

@@ -40,17 +40,30 @@ class OptimizationSummary(tk.Frame):
         self.ax.set_title("Optimization Progress")
         self.ax.set_xlabel("Time")
         self.ax.set_ylabel(f"{curveData["y_parameter"]}")
+        self.figure.subplots_adjust(bottom=0.2)
         self.line, = self.ax.plot([], [])  
+        self.line2, = self.ax.plot([], [], color="red", linestyle="--", label="Second Line")
+        print("Test Rows Here:")
+        print(testRows)
+        xTargets=[]
+        yTargets=[]
+        for row in testRows:
+            xTargets.append(row[0])
+            yTargets.append(row[1])
+        self.line2.set_data(xTargets,yTargets)
+        range = max(yTargets) - min(yTargets)
+        self.ax.set_ylim((min(yTargets)- max(range*0.25,1)),(max(yTargets)+max(range*0.25,1)))
 
         self.canvas = FigureCanvasTkAgg(self.figure, master=main_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=2, column=0, pady=10, padx=20, sticky="nsew")
 
         self.continue_button = ttk.Button(main_frame, text="Close", command=self.close_window)
-        self.continue_button.grid(row=3, column=0, pady=20, padx=20)
+        self.continue_button.grid(row=3, column=0, pady=5, padx=20)
 
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_rowconfigure(2, weight=1)
+        main_frame.grid_rowconfigure(3, weight=0)
         main_frame.grid_columnconfigure(0, weight=1)
 
         
@@ -87,13 +100,16 @@ class OptimizationSummary(tk.Frame):
 
         self.parent.after(10, self.update_ui)
 
-    def update_graph(self, y_data):
-        y_data = list(y_data)
+    def update_graph(self, xy_data):
+        data = tuple(xy_data)
+        y_data = list(data[1])
+        x_data = list(data[0])
         if isinstance(y_data, list):
-            x_data = list(range(1, len(y_data) + 1))
+            #x_data = list(range(1, len(y_data) + 1))
             self.line.set_data(x_data, y_data)
             self.ax.relim()
             self.ax.autoscale_view()
+            #self.ax.set_xlabel("Time")
             self.canvas.draw()
 
     def close_window(self):
