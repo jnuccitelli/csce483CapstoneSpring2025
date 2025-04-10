@@ -29,12 +29,18 @@ class OptimizationSummary(tk.Frame):
         self.tree.column("Value", anchor="w", width=150)
         self.tree.grid(row=1, column=0, pady=10, padx=20, sticky="nsew")
 
+        curveData = self.controller.get_app_data("optimization_settings")
+        testRows = self.controller.get_app_data("generated_data")
+        netlistPath = self.controller.get_app_data("netlist_path")
+        netlistObject = self.controller.get_app_data("netlist_object")
+        selectedParameters = self.controller.get_app_data("selected_parameters")
+
         self.figure = Figure(figsize=(5, 2), dpi=100)
         self.ax = self.figure.add_subplot(111)
         self.ax.set_title("Optimization Progress")
-        self.ax.set_xlabel("Iteration")
-        self.ax.set_ylabel("Y Value")
-        self.line, = self.ax.plot([], [], marker='o')  
+        self.ax.set_xlabel("Time")
+        self.ax.set_ylabel(f"{curveData["y_parameter"]}")
+        self.line, = self.ax.plot([], [])  
 
         self.canvas = FigureCanvasTkAgg(self.figure, master=main_frame)
         self.canvas.draw()
@@ -47,11 +53,8 @@ class OptimizationSummary(tk.Frame):
         main_frame.grid_rowconfigure(2, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
-        curveData = self.controller.get_app_data("optimization_settings")
-        testRows = self.controller.get_app_data("generated_data")
-        netlistPath = self.controller.get_app_data("netlist_path")
-        netlistObject = self.controller.get_app_data("netlist_object")
-        selectedParameters = self.controller.get_app_data("selected_parameters")
+        
+
 
         self.queue = mp.Queue()
         self.process = mp.Process(
@@ -67,12 +70,12 @@ class OptimizationSummary(tk.Frame):
             while not self.queue.empty():
                 msg_type, msg_value = self.queue.get_nowait()
                 if msg_type == "Update":
-                    self.tree.insert("", "end", values=("Update:", msg_value))
+                    self.tree.insert("", 0, values=("Update:", msg_value))
                 elif msg_type == "Done":
-                    self.tree.insert("", "end", values=("Optimization Completed", msg_value))
+                    self.tree.insert("", 0, values=("Optimization Completed", msg_value))
                     return
                 elif msg_type == "Failed":
-                    self.tree.insert("", "end", values=("Optimization Failed", msg_value))
+                    self.tree.insert("", 0, values=("Optimization Failed", msg_value))
                 elif msg_type == "UpdateNetlist":
                     self.controller.update_app_data("netlist_object", msg_value)
                 elif msg_type == "UpdateOptimizationResults":
@@ -82,10 +85,11 @@ class OptimizationSummary(tk.Frame):
         except Exception as e:
             print("UI Update Error:", e)
 
-        self.parent.after(1000, self.update_ui)
+        self.parent.after(10, self.update_ui)
 
     def update_graph(self, y_data):
-        if isinstance(y_data, list) and all(isinstance(y, (int, float)) for y in y_data):
+        y_data = list(y_data)
+        if isinstance(y_data, list):
             x_data = list(range(1, len(y_data) + 1))
             self.line.set_data(x_data, y_data)
             self.ax.relim()

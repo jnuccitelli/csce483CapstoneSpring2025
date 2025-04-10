@@ -61,16 +61,16 @@ CC1 _net6 _net19 30
 XOP1 0  _net0 _net1 volt33 volt5 0 OpAmps_uA741
 XOP3 0  _net2 vout _net3 volt5 0 OpAmps_uA741
 XOP2 0  _net4 _net5 volt28 volt5 0 OpAmps_uA741
-R2 _net4 _net5  10K tc1=0.0 tc2=0.0 
-R4 _net1 _net3  10K tc1=0.0 tc2=0.0 
-R3 _net5 _net2  10K tc1=0.0 tc2=0.0 
-R5 _net0 _net1  10K tc1=0.0 tc2=0.0 
-R6 0 _net3  10K tc1=0.0 tc2=0.0 
+R1_2 _net4 _net5  10K tc1=0.0 tc2=0.0 
+R2_1 _net1 _net3  10K tc1=0.0 tc2=0.0 
+R2_2 _net5 _net2  10K tc1=0.0 tc2=0.0 
+R1_1 _net0 _net1  10K tc1=0.0 tc2=0.0 
+R3_1 0 _net3  10K tc1=0.0 tc2=0.0 
 V1 volt33 0 DC 3.3
 V3 volt28 0 DC 2.8
 V2 volt5 0 DC 5
-R1 _net4 _net0  22K tc1=0.0 tc2=0.0 
-R7 _net2 vout  10K tc1=0.0 tc2=0.0 
+RGAIN _net4 _net0  22K tc1=0.0 tc2=0.0 
+R3_2 _net2 vout  10K tc1=0.0 tc2=0.0 
 
 
 .END
