@@ -52,9 +52,12 @@ class Netlist:
                             nodes.add(values[8])
                         #Case for two node components
                         case "B" | "C" | "D" | "F" | "H" | "I" | "L" | "R" | "V" | "W":
-##################### TODO: Need to deal with component value conversions possibly. Just floating right now, but doesn't help for 1K, 31u, etc.#####################
                             if values[0][0] == "R" or values[0][0] == "L" or values[0][0] == "C":
                                 newComponent = Component(values[0],values[0][0], self.componentValConversion(values[3]))
+                                #Default mins and max are 10x or 1/10 of initial value
+                                newComponent.minVal = newComponent.value/10
+                                newComponent.maxVal = newComponent.value*10
+                                #print(f"{newComponent.name} value is {newComponent.value}. Initial min and max are {newComponent.minVal} and {newComponent.maxVal}")
                                 components.append(newComponent)
                             nodes.add(values[1])
                             nodes.add(values[2])
@@ -149,7 +152,7 @@ class Netlist:
         else:
             return float(strVal)
         
-    def writeTranCmdsToFile(self,file_path,initial_step_value,final_time_value,start_time_value,step_ceiling_value,target_node):
+    def writeTranCmdsToFile(self,file_path,initial_step_value,final_time_value,start_time_value,step_ceiling_value,target_node,constrained_nodes):
         # the first arg is the file path
         # the next four args are a string with scientfic notation prefixes ie 10n, 0.001n, 10m (this is just 10 seconds)
         # target node is the name of the node that gets printed to xyce output as a string
@@ -157,25 +160,27 @@ class Netlist:
             with open(file_path,"r") as file:
                 data = file.readlines()
 
+            newData = []
             for line in data:
                 values=line.strip().split()
                 #print(values)
-                if(values == [""] or not values):
+                if(not values):
                     continue
                 if(values[0].upper() == ".TRAN"):
-                    print("tran command detected already")
-                    return 
+                    print("tran command detected already. Removing from copy...")
+                    continue
                 if(values[0].upper() == ".PRINT"):
-                    print("print command detected already")
-                    return 
-
-            print_command_string = f".PRINT TRAN {target_node}\n"
+                    print("print command detected already Removing from copy...")
+                    continue
+                newData.append(line)
+            print_command_string = f".PRINT TRAN {target_node} {' '.join(constrained_nodes)}\n"
             tran_command_string = f".TRAN {initial_step_value}s {final_time_value}s {start_time_value}s {step_ceiling_value}s\n"
             
-            data.insert(len(data) - 1,tran_command_string)
-            data.insert(len(data) - 1,print_command_string)
+            newData.insert(1,print_command_string)
+            newData.insert(1,tran_command_string)
+
             with open(file_path,"w") as file:
-                file.writelines(data)
+                file.writelines(newData)
         except FileNotFoundError:
             print(f"Error: The file '{file_path}' was not found.")
         except Exception as e:

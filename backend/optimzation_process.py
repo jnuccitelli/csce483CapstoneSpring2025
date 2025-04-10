@@ -19,6 +19,11 @@ def add_part_constraints(constraints, netlist):
                     match constraint["operator"]:
                         case ">=":
                             component.minVal = eval(right, componentVals)
+                            if component.value <= component.minVal:
+                                component.value = component.minVal + 1
+                                component.modified = True
+                                # Not sure about what to set other bound to 
+                                component.maxVal = component.minVal *10
                             print(f"{component.name} minVal set to {component.minVal}")
                         case "=":
                             component.value = eval(right, componentVals)
@@ -28,6 +33,11 @@ def add_part_constraints(constraints, netlist):
                             print(f"{component.name} set to {component.value}")
                         case "<=":
                             component.maxVal = eval(right, componentVals)
+                            if component.value >= component.maxVal:
+                                component.value = component.maxVal - 1
+                                component.modified = True
+                                # Not sure about what to set other bound to 
+                                component.minVal = component.maxVal/10
                             print(f"{component.name} maxVal set to {component.maxVal}")
                     break
     return equalConstraints
@@ -87,7 +97,12 @@ def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedP
         initValue = min([sublist[0] for sublist in TEST_ROWS])
         shutil.copyfile(NETLIST.file_path, WRITABLE_NETLIST_PATH)
         NETLIST.class_to_file(WRITABLE_NETLIST_PATH)
-        NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE)
+        CONSTRAINED_NODES = []
+        for constraint in curveData["constraints"]:
+            if constraint["type"] == "node":
+                if constraint["left"].strip() != TARGET_VALUE:
+                    CONSTRAINED_NODES.append(constraint["left"].strip())
+        NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE,CONSTRAINED_NODES)
         #Optimization Call
         optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS, EQUALITY_PART_CONSTRAINTS,queue)
         # print(type(optim))
