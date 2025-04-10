@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import multiprocessing as mp
+import threading as th
 from backend.optimzation_process import optimizeProcess
 
 from matplotlib.figure import Figure
@@ -70,11 +71,11 @@ class OptimizationSummary(tk.Frame):
 
 
         self.queue = mp.Queue()
-        self.process = mp.Process(
+        thread = th.Thread(
             target=optimizeProcess,
             args=(self.queue, curveData, testRows, netlistPath, netlistObject, selectedParameters)
         )
-        self.process.start()
+        thread.start()
 
         self.update_ui()
 
@@ -113,6 +114,4 @@ class OptimizationSummary(tk.Frame):
             self.canvas.draw()
 
     def close_window(self):
-        if self.process.is_alive():
-            self.process.terminate()
         self.parent.quit()
