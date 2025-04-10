@@ -99,7 +99,7 @@ class OptimizationSummary(tk.Frame):
         except Exception as e:
             print("UI Update Error:", e)
 
-        self.parent.after(10, self.update_ui)
+        self.parent.after(100, self.update_ui)
 
     def update_graph(self, xy_data):
         data = tuple(xy_data)
