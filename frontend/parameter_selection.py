@@ -158,10 +158,12 @@ class ParameterSelectionWindow(tk.Frame):
             self.available_listbox.insert(tk.END, param)
 ################# ################# #################
 
+################# ################# #################
     def update_selected_listbox(self):
         self.selected_listbox.delete(0, tk.END)
-        for param in self.selected_parameters:
+        for param in sorted(self.selected_parameters):
             self.selected_listbox.insert(tk.END, param)
+################# ################# #################
 
     def add_parameters(self):
         selected_indices = self.available_listbox.curselection()
@@ -235,4 +237,5 @@ class ParameterSelectionWindow(tk.Frame):
 
      # select all & remove all #
     ###############################################################################
+
 
