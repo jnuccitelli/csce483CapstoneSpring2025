@@ -1,5 +1,6 @@
 import tkinter as tk
 
+from collections import defaultdict
 from tkinter import ttk, messagebox
 from typing import List, Dict, Any, Optional
 from .add_constraint_dialog import AddConstraintDialog
@@ -9,6 +10,7 @@ from .constraint_table import ConstraintTable
 from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
 from ..utils import import_constraints_from_file, export_constraints_to_file
+from .expression_evaluator import ExpressionEvaluator
 
 
 class OptimizationSettingsWindow(tk.Frame):
@@ -43,7 +45,7 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         optimization_type_label.pack(side=tk.LEFT, anchor=tk.W, pady=5)
 
-        self.optimization_types = ["Curve Fit"] #"Maximize/Minimize", 
+        self.optimization_types = ["Curve Fit"]  # "Maximize/Minimize",
         self.optimization_type_var = tk.StringVar(value="Curve Fit")
         optimization_type_dropdown = ttk.Combobox(
             optimization_type_frame,
@@ -60,7 +62,6 @@ class OptimizationSettingsWindow(tk.Frame):
         setting_panel_frame = ttk.Frame(main_frame)
         # Pack this frame where the settings should appear
         setting_panel_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
-
 
         # Instantiate CurveFitSettings, attaching it to the setting_panel_frame
         # Make sure to include the inputs_completed_callback from the main branch version
@@ -114,8 +115,7 @@ class OptimizationSettingsWindow(tk.Frame):
         edit_constraint_button.pack(side=tk.LEFT, padx=2)
         # --- Import/Export Buttons ---
         import_export_frame = ttk.Frame(constraints_frame)
-        import_export_frame.pack(side=tk.TOP) # Corrected row/column
-
+        import_export_frame.pack(side=tk.TOP)  # Corrected row/column
 
         import_button = ttk.Button(
             import_export_frame,
@@ -164,6 +164,7 @@ class OptimizationSettingsWindow(tk.Frame):
 
     def on_optimization_type_change(self, event=None):
         selected_type = self.optimization_type_var.get()
+
     #     if selected_type == "Maximize/Minimize":
     #         self.curve_fit_settings.pack_forget()
     #         self.max_min_settings.pack(fill=tk.BOTH, expand=True)
@@ -202,7 +203,7 @@ class OptimizationSettingsWindow(tk.Frame):
             return None  # Indicates an invalid or unsupported left-hand side format
 
     def add_constraint(self, constraint_data: Dict[str, str]):
-        """Adds the constraint type and stores it."""
+        """Adds the constraint type, checks for cycles (params & nodes), and stores it."""
         left_side = constraint_data.get("left", "")
         constraint_type = self._determine_constraint_type(left_side)
 
@@ -213,34 +214,73 @@ class OptimizationSettingsWindow(tk.Frame):
             )
             return
 
-        # Add the type to the dictionary
-        constraint_data["type"] = constraint_type
+        constraint_data["type"] = constraint_type  # Add type info
 
-        self.constraints.append(constraint_data)  # Store the constraint with its type
-        print(f"Added Constraint: {constraint_data}")  # Debug
-        # Modify constraint_table.add_constraint to accept and potentially display the type
+        # --- CYCLE CHECK (Modified Trigger) ---
+        # Check cycles if ANY equality constraint is being added
+        if constraint_data.get("operator") == "=":  # Check only operator now
+            temp_constraints = self.constraints + [constraint_data]
+            if self.check_for_constraint_cycles(temp_constraints):
+                messagebox.showerror(
+                    "Cycle Detected",
+                    f"Adding constraint '{constraint_data['left']} {constraint_data['operator']} {constraint_data['right']}' would create a cyclic dependency involving parameters and/or nodes. Please revise.",
+                    parent=self,
+                )
+                return  # Do not add the constraint
+
+        # --- END CYCLE CHECK ---
+
+        self.constraints.append(constraint_data)
+        print(f"Added Constraint: {constraint_data}")
         self.constraint_table.add_constraint(constraint_data)
 
-    def open_edit_constraint_dialog(self, constraint: Dict[str, str], index: int):
+    def open_edit_constraint_dialog(
+        self, constraint_to_edit: Dict[str, str], index: int
+    ):
+        """Opens the Edit dialog and handles the result, including cycle check (params & nodes)."""
         dialog = EditConstraintDialog(
-            self, self.selected_parameters, self.node_voltage_expressions, constraint
+            self,
+            self.selected_parameters,
+            self.node_voltage_expressions,
+            constraint_to_edit.copy(),
         )
-        self.wait_window(dialog)  # Wait for dialog to close
+        self.wait_window(dialog)
+
         if dialog.constraint is not None:
-            new_constraint = (
-                dialog.constraint
-            )  # Assume EditDialog updated its self.constraint
-            constraint_type = self._determine_constraint_type(new_constraint["left"])
+            proposed_constraint = dialog.constraint
+
+            # --- VALIDATION and TYPE DETERMINATION ---
+            constraint_type = self._determine_constraint_type(
+                proposed_constraint["left"]
+            )
             if constraint_type is None:
                 messagebox.showerror(
-                    "Error", f"Invalid left-hand side: {new_constraint['left']}"
+                    "Error",
+                    f"Invalid left-hand side after edit: {proposed_constraint['left']}",
                 )
                 return
-            new_constraint["type"] = constraint_type  # Add/Update type
-            self.constraints[index] = new_constraint
-            self.constraint_table.update_constraint(
-                index, new_constraint
-            )  # Update table (needs type support)
+            proposed_constraint["type"] = constraint_type
+
+            # --- CYCLE CHECK (Modified Trigger) ---
+            # Check cycles if ANY equality constraint results from the edit
+            if proposed_constraint.get("operator") == "=":  # Check only operator now
+                temp_constraints = [
+                    c for i, c in enumerate(self.constraints) if i != index
+                ] + [proposed_constraint]
+
+                if self.check_for_constraint_cycles(temp_constraints):
+                    messagebox.showerror(
+                        "Cycle Detected",
+                        f"Editing constraint to '{proposed_constraint['left']} {proposed_constraint['operator']} {proposed_constraint['right']}' would create a cyclic dependency involving parameters and/or nodes. Please revise.",
+                        parent=self,
+                    )
+                    return  # Do not apply the edit
+
+            # --- END CYCLE CHECK ---
+
+            # If validation and cycle check pass, apply the changes
+            self.constraints[index] = proposed_constraint
+            self.constraint_table.update_constraint(index, proposed_constraint)
 
     def remove_constraint(self):
         # get selected from treeview and index
@@ -254,6 +294,7 @@ class OptimizationSettingsWindow(tk.Frame):
             self.constraint_table.delete(selected)
             del self.constraints[index]
 
+    # The edit_constraint method now just calls the modified open_edit_constraint_dialog
     def edit_constraint(self):
         """Opens the EditConstraintDialog for the selected constraint."""
         selected_items = self.constraint_table.selection()
@@ -266,11 +307,15 @@ class OptimizationSettingsWindow(tk.Frame):
 
         selected_item = selected_items[0]
         index = self.constraint_table.index(selected_item)
-        #  CRUCIAL: We need to get the constraint data *from the Treeview*,
-        #   NOT from the potentially outdated self.controller.constraints.
-        values = self.constraint_table.item(selected_item, "values")
-        constraint = {"left": values[0], "operator": values[1], "right": values[2]}
-        self.open_edit_constraint_dialog(constraint, index)  # Call the edit callback
+
+        # Get the *current* constraint data from our internal list
+        # It's safer than parsing the Treeview again, assuming self.constraints is the source of truth
+        if 0 <= index < len(self.constraints):
+            current_constraint = self.constraints[index]
+            # Call the updated method that handles the dialog and checks
+            self.open_edit_constraint_dialog(current_constraint, index)
+        else:
+            messagebox.showerror("Error", "Could not find selected constraint data.")
 
     def go_back(self):
         self.controller.navigate("parameter_selection")
@@ -311,8 +356,8 @@ class OptimizationSettingsWindow(tk.Frame):
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
 
-###########################################################################################################################################
-        #SET VARIABLES FOR OPTIMIZATION
+        ###########################################################################################################################################
+        # SET VARIABLES FOR OPTIMIZATION
         self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
@@ -335,10 +380,10 @@ class OptimizationSettingsWindow(tk.Frame):
             return
         export_constraints_to_file(self.constraints)
 
-    def add_part_constraints(self,constraints, netlist):
+    def add_part_constraints(self, constraints, netlist):
         equalConstraints = []
         for constraint in constraints:
-            #Parse out  components
+            # Parse out  components
             if constraint["type"] == "parameter":
                 left = constraint["left"].strip()
                 right = constraint["right"].strip()
@@ -351,7 +396,9 @@ class OptimizationSettingsWindow(tk.Frame):
                         match constraint["operator"]:
                             case ">=":
                                 component.minVal = eval(right, componentVals)
-                                print(f"{component.name} minVal set to {component.minVal}")
+                                print(
+                                    f"{component.name} minVal set to {component.minVal}"
+                                )
                             case "=":
                                 component.value = eval(right, componentVals)
                                 component.variable = False
@@ -360,26 +407,113 @@ class OptimizationSettingsWindow(tk.Frame):
                                 print(f"{component.name} set to {component.value}")
                             case "<=":
                                 component.maxVal = eval(right, componentVals)
-                                print(f"{component.name} maxVal set to {component.maxVal}")
+                                print(
+                                    f"{component.name} maxVal set to {component.maxVal}"
+                                )
                         break
         return equalConstraints
-    
+
     def add_node_constraints(self, constraints):
         formattedNodeConstraints = {}
         nodes = {}
         for constraint in constraints:
             if constraint["type"] == "node":
-                nodes[constraint["left"].strip()] = [None,None]
+                nodes[constraint["left"].strip()] = [None, None]
         for constraint in constraints:
             if constraint["type"] == "node":
                 match constraint["operator"]:
-                            case ">=":
-                                nodes[constraint["left"].strip()][0] = float(constraint["right"].strip())
-                            case "<=":
-                                nodes[constraint["left"].strip()][1] = float(constraint["right"].strip())
+                    case ">=":
+                        nodes[constraint["left"].strip()][0] = float(
+                            constraint["right"].strip()
+                        )
+                    case "<=":
+                        nodes[constraint["left"].strip()][1] = float(
+                            constraint["right"].strip()
+                        )
         for node in nodes:
-            formattedNodeConstraints[node] = (nodes[node][0],nodes[node][1])
-            #left = constraint["left"].strip()
-            #right = float(constraint["right"].strip())
-            #formattedNodeConstraints[left] = (None,None)
+            formattedNodeConstraints[node] = (nodes[node][0], nodes[node][1])
+            # left = constraint["left"].strip()
+            # right = float(constraint["right"].strip())
+            # formattedNodeConstraints[left] = (None,None)
         return formattedNodeConstraints
+
+    def _build_dependency_graph(
+        self, constraints_to_consider: List[Dict[str, str]]
+    ) -> Dict[str, set]:
+        """
+        Builds a dependency graph from ALL '=' constraints, including parameters and nodes.
+        Nodes in the graph are parameter names (e.g., 'R1') or node expressions (e.g., 'V(1)').
+        An edge X -> Y means Y depends on X (e.g., Y = f(X)).
+        """
+        graph = defaultdict(set)
+        # Evaluator needs all potential variables on the RHS
+        evaluator = ExpressionEvaluator(
+            parameters=self.selected_parameters,
+            node_expressions=self.node_voltage_expressions,
+        )
+        # Define the set of all items that can be nodes in our dependency graph
+        all_valid_graph_nodes = set(self.selected_parameters or []) | set(
+            self.node_voltage_expressions or []
+        )
+
+        for constraint in constraints_to_consider:
+            # Consider ALL equality constraints
+            if constraint.get("operator") == "=":
+                lhs = constraint[
+                    "left"
+                ]  # This is the dependent item (parameter or node)
+                rhs_expr = constraint["right"]
+
+                # Ensure the LHS is a valid parameter or node expression we care about
+                if lhs not in all_valid_graph_nodes:
+                    continue  # Skip if LHS isn't a parameter or known node
+
+                # Validate the RHS and get the *original* parameters/nodes it uses
+                is_valid, rhs_vars_used = evaluator.validate_expression(rhs_expr)
+
+                if is_valid:
+                    # Add edges: dependency -> dependent (rhs_var -> lhs)
+                    for rhs_var in rhs_vars_used:
+                        # Only add edges if the dependency (rhs_var) is also a valid graph node
+                        if rhs_var in all_valid_graph_nodes:
+                            graph[rhs_var].add(lhs)  # Add edge from rhs_var to lhs
+        # print(f"Built Graph: {dict(graph)}") # Debug: See the graph structure
+        return graph
+
+    def _detect_cycle_util(
+        self, node: str, graph: Dict[str, set], visiting: set, visited: set
+    ) -> bool:
+        """DFS utility for cycle detection."""
+        visiting.add(node)
+
+        for neighbor in graph.get(node, set()):
+            if neighbor in visiting:
+                return True  # Cycle detected
+            if neighbor not in visited:
+                if self._detect_cycle_util(neighbor, graph, visiting, visited):
+                    return True  # Cycle detected in recursive call
+
+        visiting.remove(node)
+        visited.add(node)
+        return False
+
+    def check_for_constraint_cycles(
+        self, constraints_to_check: List[Dict[str, str]]
+    ) -> bool:
+        """Checks for cyclic dependencies in a given list of constraints (params and nodes)."""
+        graph = self._build_dependency_graph(constraints_to_check)
+        visiting = set()
+        visited = set()
+
+        # Get all unique nodes present in the graph (both keys and values)
+        all_nodes_in_graph = set(graph.keys()) | set(
+            n for dependents in graph.values() for n in dependents
+        )
+
+        for node in all_nodes_in_graph:
+            if node not in visited:
+                if self._detect_cycle_util(node, graph, visiting, visited):
+                    # print(f"Cycle detected involving node: {node}") # Debug
+                    return True  # Cycle found
+
+        return False  # No cycles found
