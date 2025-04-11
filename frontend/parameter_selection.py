@@ -22,6 +22,12 @@ class ParameterSelectionWindow(tk.Frame):
 
         self.netlist: Netlist = None
 
+        # --- instructions/explanatory text ---
+        self.instructions = ttk.Frame(self)
+        self.instructions.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
+        explanatory_text = ttk.Label(self.instructions, text="Specify which parameters to optimize.", anchor="w")
+        explanatory_text.pack(side=tk.LEFT)
+
         # --- Left Frame (Available Parameters) ---
         self.left_frame = ttk.Frame(self)
         self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)

@@ -24,12 +24,13 @@ class CurveFitSettings(tk.Frame):
         self.frames = {}
         self.generated_data = None
         self.inputs_completed = False
+        self.time_tuples_list = []
 
         
         # --- combobox for: line input vs heavyside vs custom csv
         self.select_input_type_frame = ttk.Frame(self)
         self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X)
-        ttk.Label(self.select_input_type_frame, text="Input Function Type: ").pack(side=tk.LEFT)
+        ttk.Label(self.select_input_type_frame, text="Target Function Type: ").pack(side=tk.LEFT)
         answer = tk.StringVar()
         self.input_type_options = ttk.Combobox(self.select_input_type_frame, textvariable=answer)
         self.input_type_options['values'] = ('Line',
@@ -87,6 +88,20 @@ class CurveFitSettings(tk.Frame):
             return False
         return True
 
+    def is_intersecting(self, tuple1, tuple2) -> bool:
+        # Check if two intervals intersect
+        start1, end1 = tuple1 
+        start2, end2 = tuple2 
+        return start1 <= end2 and start2 <= end1
+
+    def check_if_in_previous_x_ranges(self, time_tuple) -> bool:
+        # Iterate through each tuple in the list and check for intersection
+        for existing_tuple in self.time_tuples_list:
+            if self.is_intersecting(existing_tuple, time_tuple):
+                messagebox.showerror("Input Error", "The time range you entered overlaps with a previously defined range. Please enter a non-overlapping time range.")
+                return True  # Return True if an intersection is found
+        return False  # Return False if no intersections are found
+        
     def create_line_frame(self):
         line_frame = tk.Frame(self.select_input_type_frame)
         line_frame.pack()
@@ -160,7 +175,6 @@ class CurveFitSettings(tk.Frame):
         self.line_button.config(state=tk.NORMAL)
         self.heaviside_button.config(state=tk.NORMAL)
 
-        
     def add_function(self, in_type, arg1, arg2, arg3, arg4):
         if in_type == input_type.LINE:
             slope = float(arg1.get())
@@ -171,7 +185,13 @@ class CurveFitSettings(tk.Frame):
             if (self.custom_x_inputs_are_valid(x_start, x_end) == False):
                 return
             
+            if (self.check_if_in_previous_x_ranges((x_start, x_end)) == True):
+                return
+            
             self.heaviside_button.config(state=tk.DISABLED) #disable the other button
+            
+            self.time_tuples_list.append((x_start, x_end))
+            
             self.custom_functions.append((slope, y_int, x_start, x_end))
             string_func = f"LINE: y = ({slope})*x + {y_int}; from x = [{x_start} to {x_end}]"
 
@@ -191,7 +211,13 @@ class CurveFitSettings(tk.Frame):
             if (self.custom_x_inputs_are_valid(x_start, x_end) == False):
                 return
             
-            self.line_button.config(state=tk.DISABLED) #disable the other button
+            if (self.check_if_in_previous_x_ranges((x_start, x_end)) == True):
+                return
+            
+            self.time_tuples_list.append((x_start, x_end))
+
+            self.line_button.config(state=tk.DISABLED) #disable the other button          
+
             self.custom_functions.append((amplitude, x_start, x_end))
             string_func = f"HEAVISIDE: amplitude = {amplitude}; from x = [{x_start} to {x_end}]"
             
