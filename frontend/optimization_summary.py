@@ -53,7 +53,9 @@ class OptimizationSummary(tk.Frame):
             yTargets.append(row[1])
         self.line2.set_data(xTargets,yTargets)
         range = max(yTargets) - min(yTargets)
-        self.ax.set_ylim((min(yTargets)- max(range*0.25,1)),(max(yTargets)+max(range*0.25,1)))
+        self.minBound = (min(yTargets)- max(range*0.25,1))
+        self.maxBound = (max(yTargets)+ max(range*0.25,1))
+        self.ax.set_ylim(self.minBound,self.maxBound)
 
         self.canvas = FigureCanvasTkAgg(self.figure, master=main_frame)
         self.canvas.draw()
@@ -71,11 +73,11 @@ class OptimizationSummary(tk.Frame):
 
 
         self.queue = mp.Queue()
-        thread = th.Thread(
+        self.thread = th.Thread(
             target=optimizeProcess,
             args=(self.queue, curveData, testRows, netlistPath, netlistObject, selectedParameters)
         )
-        thread.start()
+        self.thread.start()
 
         self.update_ui()
 
@@ -110,6 +112,7 @@ class OptimizationSummary(tk.Frame):
             self.line.set_data(x_data, y_data)
             self.ax.relim()
             self.ax.autoscale_view()
+            self.ax.set_ylim(min(self.minBound,min(y_data) - 1),max(self.maxBound,max(y_data) + 1))
             #self.ax.set_xlabel("Time")
             self.canvas.draw()
 
