@@ -53,6 +53,7 @@ class OptimizationSummary(tk.Frame):
         netlistPath = self.controller.get_app_data("netlist_path")
         netlistObject = self.controller.get_app_data("netlist_object")
         selectedParameters = self.controller.get_app_data("selected_parameters")
+        optimizationTolerances = self.controller.get_app_data("optimization_tolerances")
 
         self.figure = Figure(figsize=(5, 2), dpi=100)
         self.ax = self.figure.add_subplot(111)
@@ -93,7 +94,7 @@ class OptimizationSummary(tk.Frame):
         self.queue = mp.Queue()
         self.thread = th.Thread(
             target=optimizeProcess,
-            args=(self.queue, curveData, testRows, netlistPath, netlistObject, selectedParameters)
+            args=(self.queue, curveData, testRows, netlistPath, netlistObject, selectedParameters, optimizationTolerances)
         )
         self.thread.start()
 

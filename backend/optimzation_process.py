@@ -63,7 +63,7 @@ def add_node_constraints(constraints):
         #formattedNodeConstraints[left] = (None,None)
     return formattedNodeConstraints
 
-def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedParameters):
+def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedParameters,optimizationTolerances):
     try:
         print("GOT HERE")
         
@@ -104,7 +104,7 @@ def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedP
                     CONSTRAINED_NODES.append(constraint["left"].strip())
         NETLIST.writeTranCmdsToFile(WRITABLE_NETLIST_PATH,(endValue- initValue)/ 100,endValue,initValue,(endValue- initValue)/ 100,TARGET_VALUE,CONSTRAINED_NODES)
         #Optimization Call
-        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS, EQUALITY_PART_CONSTRAINTS,queue)
+        optim = curvefit_optimize(TARGET_VALUE, TEST_ROWS, NETLIST, WRITABLE_NETLIST_PATH, NODE_CONSTRAINTS, EQUALITY_PART_CONSTRAINTS,queue,optimizationTolerances[0],optimizationTolerances[1],optimizationTolerances[2])
         # print(type(optim))
 
         #Update AppData

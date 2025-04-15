@@ -12,6 +12,15 @@ from ..utils import import_constraints_from_file, export_constraints_to_file
 
 
 class OptimizationSettingsWindow(tk.Frame):
+    def validate_float(self, var_name):
+            try:
+                val = float(getattr(self, var_name).get())
+                return True
+            except ValueError:
+                messagebox.showerror("Invalid Input", f"Please enter a valid number for {var_name.replace('_var', '')}")
+                getattr(self, var_name).set("1e-12")  # Reset to default if invalid
+                return False
+
     def __init__(self, parent: tk.Tk, controller: "AppController"):
         super().__init__(parent)
         self.controller = controller
@@ -130,6 +139,43 @@ class OptimizationSettingsWindow(tk.Frame):
             command=self.export_constraints,
         )
         export_button.pack(side=tk.LEFT, padx=5)
+
+
+    # Optimization Tolerance and default bound Section
+
+        tolerances_frame = ttk.Frame(main_frame)
+        tolerances_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        tolerances_label = ttk.Label(tolerances_frame, text="Optimization Tolerances:")
+        tolerances_label.pack(side=tk.TOP, anchor="w", pady=5)
+
+        # Row of labeled entries
+        entries_row = ttk.Frame(tolerances_frame)
+        entries_row.pack(side=tk.TOP, anchor="w")
+
+        # xtol
+        xtol_label = ttk.Label(entries_row, text="xtol:")
+        xtol_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.xtol_var = tk.StringVar(value="1e-12")
+        self.xtol_entry = ttk.Entry(entries_row, width=10,textvariable=self.xtol_var)
+        self.xtol_entry.pack(side=tk.LEFT, padx=(0, 15))
+        self.xtol_entry.bind("<FocusOut>", lambda e: self.validate_float("xtol_var"))
+
+        # gtol
+        gtol_label = ttk.Label(entries_row, text="gtol:")
+        gtol_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.gtol_var = tk.StringVar(value="1e-12")
+        self.gtol_entry = ttk.Entry(entries_row, width=10,textvariable=self.gtol_var)
+        self.gtol_entry.pack(side=tk.LEFT, padx=(0, 15))
+        self.gtol_entry.bind("<FocusOut>", lambda e: self.validate_float("gtol_var"))
+
+        # ftol
+        ftol_label = ttk.Label(entries_row, text="ftol:")
+        ftol_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.ftol_var = tk.StringVar(value="1e-12")
+        self.ftol_entry = ttk.Entry(entries_row, width=10,textvariable=self.ftol_var)
+        self.ftol_entry.pack(side=tk.LEFT)
+        self.ftol_entry.bind("<FocusOut>", lambda e: self.validate_float("ftol_var"))
 
         # --- Navigation Buttons ---
         navigation_frame = ttk.Frame(self)
@@ -310,6 +356,10 @@ class OptimizationSettingsWindow(tk.Frame):
         optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
+
+        #self.controller.update_app_data("optimization_tolerances", [xtol, gtol, ftol])
+        self.controller.update_app_data("optimization_tolerances", [float(self.xtol_var.get()),float(self.gtol_var.get()),float(self.ftol_var.get())])
+        print(f"new tolerances are {self.controller.get_app_data("optimization_tolerances")}")
 
 ###########################################################################################################################################
         #SET VARIABLES FOR OPTIMIZATION
