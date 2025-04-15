@@ -20,15 +20,33 @@ class OptimizationSummary(tk.Frame):
         # Main frame for centering content
         main_frame = ttk.Frame(self)
         main_frame.pack(expand=True, fill=tk.BOTH)
-        complete_label = ttk.Label(main_frame, text="Optimization In Progress", font=("Arial", 16, "bold"))
-        complete_label.grid(row=0, column=0, pady=20, padx=20, sticky="nsew")
+        self.complete_label = ttk.Label(main_frame, text="Optimization In Progress", font=("Arial", 16, "bold"))
+        self.complete_label.grid(row=0, column=0, pady=20, padx=20, sticky="nsew")
 
-        self.tree = ttk.Treeview(main_frame, columns=("Parameter", "Value"), show="headings")
+        # Frame to contain treeview and scrollbar
+        tree_frame = ttk.Frame(main_frame)
+        tree_frame.grid(row=1, column=0, pady=10, padx=20, sticky="nsew")
+
+        # Treeview
+        self.tree = ttk.Treeview(tree_frame, columns=("Parameter", "Value"), show="headings")
         self.tree.heading("Parameter", text="Parameter")
         self.tree.heading("Value", text="Value")
         self.tree.column("Parameter", anchor="w", width=200)
         self.tree.column("Value", anchor="w", width=150)
-        self.tree.grid(row=1, column=0, pady=10, padx=20, sticky="nsew")
+        self.tree.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # Make the treeview expand inside its container
+        tree_frame.grid_rowconfigure(0, weight=1)
+        tree_frame.grid_columnconfigure(0, weight=1)
+
+        # Also expand the tree_frame in the main layout
+        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
 
         curveData = self.controller.get_app_data("optimization_settings")
         testRows = self.controller.get_app_data("generated_data")
@@ -44,8 +62,8 @@ class OptimizationSummary(tk.Frame):
         self.figure.subplots_adjust(bottom=0.2)
         self.line, = self.ax.plot([], [])  
         self.line2, = self.ax.plot([], [], color="red", linestyle="--", label="Second Line")
-        print("Test Rows Here:")
-        print(testRows)
+        #print("Test Rows Here:")
+        #print(testRows)
         xTargets=[]
         yTargets=[]
         for row in testRows:
@@ -88,7 +106,8 @@ class OptimizationSummary(tk.Frame):
                 if msg_type == "Update":
                     self.tree.insert("", 0, values=("Update:", msg_value))
                 elif msg_type == "Done":
-                    self.tree.insert("", 0, values=("Optimization Completed", msg_value))
+                    self.tree.insert("", 0, values=("", msg_value))
+                    self.complete_label.config(text="Optimization Complete")
                     return
                 elif msg_type == "Failed":
                     self.tree.insert("", 0, values=("Optimization Failed", msg_value))

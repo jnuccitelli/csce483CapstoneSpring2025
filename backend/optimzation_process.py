@@ -112,6 +112,12 @@ def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedP
         queue.put(("UpdateOptimizationResults",optim))
         
         print(f"Optimization Results: {optim}")
-        queue.put(("Update", f"Optimization Results: {optim}"))  
+        queue.put(("Update", "Optimization Complete!"))
+        queue.put(("Update", f"Optimality: {optim[4]}"))
+        queue.put(("Update", f"Final Cost: {optim[3]}"))
+        queue.put(("Update", f"Initial Cost: {optim[2]}"))
+        queue.put(("Update", f"Least Squares Iterations: {optim[1]}"))
+        queue.put(("Update", f"Total Xyce Runs: {optim[0]}"))
+        queue.put(("Done", f"Optimization Results:"))
     except Exception as e:
         queue.put(("Failed",f"{e}"))
