@@ -140,6 +140,41 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         export_button.pack(side=tk.LEFT, padx=5)
 
+        # Frame for default bounds
+        default_bounds_frame = ttk.Frame(main_frame)
+        default_bounds_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        # Label for section
+        default_bounds_label = ttk.Label(default_bounds_frame, text="Enable Default Bounds For Unspecified Component Bounds (1/10th minimum and 10x maximum of starting value):")
+        default_bounds_label.pack(side=tk.TOP, anchor=tk.W, pady=(5, 0))
+
+        # Booleans for checkboxes
+        self.enable_R_bounds = tk.BooleanVar(value=True)
+        self.enable_L_bounds = tk.BooleanVar(value=True)
+        self.enable_C_bounds = tk.BooleanVar(value=True)
+
+        # Row of checkboxes (R, L, C)
+        checkbox_row = ttk.Frame(default_bounds_frame)
+        checkbox_row.pack(side=tk.TOP, anchor=tk.W, padx=10, pady=2)
+
+        # R checkbox
+        r_label = ttk.Label(checkbox_row, text="R:")
+        r_label.pack(side=tk.LEFT)
+        r_check = ttk.Checkbutton(checkbox_row, variable=self.enable_R_bounds)
+        r_check.pack(side=tk.LEFT, padx=(0, 10))
+
+        # L checkbox
+        l_label = ttk.Label(checkbox_row, text="L:")
+        l_label.pack(side=tk.LEFT)
+        l_check = ttk.Checkbutton(checkbox_row, variable=self.enable_L_bounds)
+        l_check.pack(side=tk.LEFT, padx=(0, 10))
+
+        # C checkbox
+        c_label = ttk.Label(checkbox_row, text="C:")
+        c_label.pack(side=tk.LEFT)
+        c_check = ttk.Checkbutton(checkbox_row, variable=self.enable_C_bounds)
+        c_check.pack(side=tk.LEFT)
+
 
     # Optimization Tolerance and default bound Section
 
@@ -356,10 +391,10 @@ class OptimizationSettingsWindow(tk.Frame):
         optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
-
-        #self.controller.update_app_data("optimization_tolerances", [xtol, gtol, ftol])
         self.controller.update_app_data("optimization_tolerances", [float(self.xtol_var.get()),float(self.gtol_var.get()),float(self.ftol_var.get())])
+        self.controller.update_app_data("RLC_bounds", [self.enable_R_bounds.get(),self.enable_L_bounds.get(),self.enable_C_bounds.get()])
         print(f"new tolerances are {self.controller.get_app_data("optimization_tolerances")}")
+        print(f"RLC Default bounds {self.controller.get_app_data("RLC_bounds")} respectively")
 
 ###########################################################################################################################################
         #SET VARIABLES FOR OPTIMIZATION

@@ -2,7 +2,7 @@ import numpy as np
 
 # Class Declaration
 class Component:
-    def __init__(self, name="", type="", value=0, variable=False, modified=False, minVal = 0, maxVal = np.inf):
+    def __init__(self, name="", type="", value=0, variable=False, modified=False, minVal = -1, maxVal = np.inf):
         self.name = name
         self.type = type
         self.value = value
@@ -55,8 +55,8 @@ class Netlist:
                             if values[0][0] == "R" or values[0][0] == "L" or values[0][0] == "C":
                                 newComponent = Component(values[0],values[0][0], self.componentValConversion(values[3]))
                                 #Default mins and max are 10x or 1/10 of initial value
-                                newComponent.minVal = newComponent.value/10
-                                newComponent.maxVal = newComponent.value*10
+                                #newComponent.minVal = newComponent.value/10
+                                #newComponent.maxVal = newComponent.value*10
                                 #print(f"{newComponent.name} value is {newComponent.value}. Initial min and max are {newComponent.minVal} and {newComponent.maxVal}")
                                 components.append(newComponent)
                             nodes.add(values[1])

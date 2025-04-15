@@ -1,6 +1,6 @@
 
 import shutil
-
+import numpy as np
 from backend.curvefit_optimization import curvefit_optimize
 
 def add_part_constraints(constraints, netlist):
@@ -23,7 +23,7 @@ def add_part_constraints(constraints, netlist):
                                 component.value = component.minVal + 1
                                 component.modified = True
                                 # Not sure about what to set other bound to 
-                                component.maxVal = component.minVal *10
+                                #component.maxVal = component.minVal *10
                             print(f"{component.name} minVal set to {component.minVal}")
                         case "=":
                             component.value = eval(right, componentVals)
@@ -37,7 +37,7 @@ def add_part_constraints(constraints, netlist):
                                 component.value = component.maxVal - 1
                                 component.modified = True
                                 # Not sure about what to set other bound to 
-                                component.minVal = component.maxVal/10
+                                #component.minVal = component.maxVal/10
                             print(f"{component.name} maxVal set to {component.maxVal}")
                     break
     return equalConstraints
@@ -63,7 +63,7 @@ def add_node_constraints(constraints):
         #formattedNodeConstraints[left] = (None,None)
     return formattedNodeConstraints
 
-def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedParameters,optimizationTolerances):
+def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedParameters,optimizationTolerances,RLCBounds):
     try:
         print("GOT HERE")
         
@@ -89,9 +89,32 @@ def optimizeProcess(queue,curveData,testRows,netlistPath,netlistObject,selectedP
                 component.variable = True
 
         #ADD IN INITIAL CONSTRAINTS TO NETLIST CLASS VIA MINVAL MAXVAL
-
         EQUALITY_PART_CONSTRAINTS = add_part_constraints(curveData["constraints"], NETLIST)
 
+        #ADD DEFAULT BOUNDS IF USER WANTS THEM FOR COMPONENT TYPE AND THEY HAVEN'T BEEN SPECIFIED BY OTHER CONSTRAINT
+        for component in NETLIST.components:
+            match component.type:
+                case "R":
+                    if (RLCBounds[0]):
+                        if component.minVal == -1:
+                            component.minVal = component.value/10
+                        if component.maxVal == np.inf:
+                            component.maxVal = component.value*10
+                case "L":
+                    if (RLCBounds[1]):
+                        if component.minVal == -1:
+                            component.minVal = component.value/10
+                        if component.maxVal == np.inf:
+                            component.maxVal = component.value*10
+                case "C":
+                    if (RLCBounds[2]):
+                        if component.minVal == -1:
+                            component.minVal = component.value/10
+                        if component.maxVal == np.inf:
+                            component.maxVal = component.value*10
+            #If min is still -1 after match statement (Case where no bound specified in a constraint and default bounds not desired by user) set to 0.
+            if component.minVal == -1:
+                component.minVal = 0
         #Function call for writing proper commands to copy netlist here I think (Joseph's stuff)
         endValue = max([sublist[0] for sublist in TEST_ROWS])
         initValue = min([sublist[0] for sublist in TEST_ROWS])
