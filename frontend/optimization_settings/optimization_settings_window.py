@@ -102,9 +102,32 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         self.constraint_table.pack(fill=tk.BOTH, expand=True)
 
-        # --- Add, Remove, and Edit Buttons (within the ConstraintTable) ---
-        self.button_frame = ttk.Frame(constraints_frame)  # Create a frame for buttons.
-        self.button_frame.pack(side=tk.TOP, anchor=tk.E)
+        # --- Horizontal Button Container (Shared Frame) ---
+        button_row_frame = ttk.Frame(constraints_frame)
+        button_row_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        # --- Import/Export Buttons (Left-Aligned) ---
+        import_export_frame = ttk.Frame(button_row_frame)
+        import_export_frame.pack(side=tk.LEFT)
+
+        import_button = ttk.Button(
+            import_export_frame,
+            text="Import Constraints",
+            command=self.import_constraints,
+        )
+        import_button.pack(side=tk.LEFT, padx=5)
+
+        export_button = ttk.Button(
+            import_export_frame,
+            text="Export Constraints",
+            command=self.export_constraints,
+        )
+        export_button.pack(side=tk.LEFT, padx=5)
+
+        # --- Add/Remove/Edit Buttons (Right-Aligned) ---
+        self.button_frame = ttk.Frame(button_row_frame)
+        self.button_frame.pack(side=tk.RIGHT)
+
         add_constraint_button = ttk.Button(
             self.button_frame,
             text="Add Constraint",
@@ -121,24 +144,8 @@ class OptimizationSettingsWindow(tk.Frame):
             self.button_frame, text="Edit Constraint", command=self.edit_constraint
         )
         edit_constraint_button.pack(side=tk.LEFT, padx=2)
-        # --- Import/Export Buttons ---
-        import_export_frame = ttk.Frame(constraints_frame)
-        import_export_frame.pack(side=tk.TOP) # Corrected row/column
 
 
-        import_button = ttk.Button(
-            import_export_frame,
-            text="Import Constraints",
-            command=self.import_constraints,
-        )
-        import_button.pack(side=tk.LEFT, padx=5)
-
-        export_button = ttk.Button(
-            import_export_frame,
-            text="Export Constraints",
-            command=self.export_constraints,
-        )
-        export_button.pack(side=tk.LEFT, padx=5)
 
         # Frame for default bounds
         default_bounds_frame = ttk.Frame(main_frame)
@@ -149,9 +156,9 @@ class OptimizationSettingsWindow(tk.Frame):
         default_bounds_label.pack(side=tk.TOP, anchor=tk.W, pady=(5, 0))
 
         # Booleans for checkboxes
-        self.enable_R_bounds = tk.BooleanVar(value=True)
-        self.enable_L_bounds = tk.BooleanVar(value=True)
-        self.enable_C_bounds = tk.BooleanVar(value=True)
+        self.enable_R_bounds = tk.BooleanVar(value=False)
+        self.enable_L_bounds = tk.BooleanVar(value=False)
+        self.enable_C_bounds = tk.BooleanVar(value=False)
 
         # Row of checkboxes (R, L, C)
         checkbox_row = ttk.Frame(default_bounds_frame)
