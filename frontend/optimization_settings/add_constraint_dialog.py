@@ -5,8 +5,16 @@ from .expression_evaluator import ExpressionEvaluator
 
 
 class AddConstraintDialog(tk.Toplevel):
-    def __init__(self, parent, parameters: List[str], node_expressions: List[str]):
+    def __init__(
+        self,
+        parent,
+        parameters: List[str],
+        node_expressions: List[str],
+        allowed_left_items: List[str],
+    ):
         super().__init__(parent)
+
+        self.allowed_left_items = allowed_left_items
         self.title("Add Constraint")
         self.parameters = parameters
         self.node_expressions = node_expressions
@@ -24,8 +32,17 @@ class AddConstraintDialog(tk.Toplevel):
         left_label = ttk.Label(left_frame, text="Left:")
         left_label.pack()
         self.left_var = tk.StringVar()
-        left_entry = ttk.Entry(left_frame, textvariable=self.left_var, width=15)
-        left_entry.pack(side=tk.LEFT)
+        self.left_combobox = ttk.Combobox(
+            left_frame,
+            textvariable=self.left_var,
+            values=self.allowed_left_items,  # Use the passed list
+            state="readonly",  # Make it a dropdown only
+            width=20,  # Adjust width if needed
+        )
+        self.left_combobox.pack(fill=tk.X)
+        # Optional: Select first item if list is not empty
+        if self.allowed_left_items:
+            self.left_combobox.current(0)
 
         # --- Operator ---
         operator_frame = ttk.Frame(self)
