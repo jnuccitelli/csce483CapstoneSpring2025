@@ -12,6 +12,15 @@ from ..utils import import_constraints_from_file, export_constraints_to_file
 
 
 class OptimizationSettingsWindow(tk.Frame):
+    def validate_float(self, var_name):
+            try:
+                val = float(getattr(self, var_name).get())
+                return True
+            except ValueError:
+                messagebox.showerror("Invalid Input", f"Please enter a valid number for {var_name.replace('_var', '')}")
+                getattr(self, var_name).set("1e-12")  # Reset to default if invalid
+                return False
+
     def __init__(self, parent: tk.Tk, controller: "AppController"):
         super().__init__(parent)
         self.controller = controller
@@ -93,9 +102,32 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         self.constraint_table.pack(fill=tk.BOTH, expand=True)
 
-        # --- Add, Remove, and Edit Buttons (within the ConstraintTable) ---
-        self.button_frame = ttk.Frame(constraints_frame)  # Create a frame for buttons.
-        self.button_frame.pack(side=tk.TOP, anchor=tk.E)
+        # --- Horizontal Button Container (Shared Frame) ---
+        button_row_frame = ttk.Frame(constraints_frame)
+        button_row_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        # --- Import/Export Buttons (Left-Aligned) ---
+        import_export_frame = ttk.Frame(button_row_frame)
+        import_export_frame.pack(side=tk.LEFT)
+
+        import_button = ttk.Button(
+            import_export_frame,
+            text="Import Constraints",
+            command=self.import_constraints,
+        )
+        import_button.pack(side=tk.LEFT, padx=5)
+
+        export_button = ttk.Button(
+            import_export_frame,
+            text="Export Constraints",
+            command=self.export_constraints,
+        )
+        export_button.pack(side=tk.LEFT, padx=5)
+
+        # --- Add/Remove/Edit Buttons (Right-Aligned) ---
+        self.button_frame = ttk.Frame(button_row_frame)
+        self.button_frame.pack(side=tk.RIGHT)
+
         add_constraint_button = ttk.Button(
             self.button_frame,
             text="Add Constraint",
@@ -112,24 +144,80 @@ class OptimizationSettingsWindow(tk.Frame):
             self.button_frame, text="Edit Constraint", command=self.edit_constraint
         )
         edit_constraint_button.pack(side=tk.LEFT, padx=2)
-        # --- Import/Export Buttons ---
-        import_export_frame = ttk.Frame(constraints_frame)
-        import_export_frame.pack(side=tk.TOP) # Corrected row/column
 
 
-        import_button = ttk.Button(
-            import_export_frame,
-            text="Import Constraints",
-            command=self.import_constraints,
-        )
-        import_button.pack(side=tk.LEFT, padx=5)
 
-        export_button = ttk.Button(
-            import_export_frame,
-            text="Export Constraints",
-            command=self.export_constraints,
-        )
-        export_button.pack(side=tk.LEFT, padx=5)
+        # Frame for default bounds
+        default_bounds_frame = ttk.Frame(main_frame)
+        default_bounds_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        # Label for section
+        default_bounds_label = ttk.Label(default_bounds_frame, text="Enable Default Bounds For Unspecified Component Bounds (1/10th minimum and 10x maximum of starting value):")
+        default_bounds_label.pack(side=tk.TOP, anchor=tk.W, pady=(5, 0))
+
+        # Booleans for checkboxes
+        self.enable_R_bounds = tk.BooleanVar(value=False)
+        self.enable_L_bounds = tk.BooleanVar(value=False)
+        self.enable_C_bounds = tk.BooleanVar(value=False)
+
+        # Row of checkboxes (R, L, C)
+        checkbox_row = ttk.Frame(default_bounds_frame)
+        checkbox_row.pack(side=tk.TOP, anchor=tk.W, padx=10, pady=2)
+
+        # R checkbox
+        r_label = ttk.Label(checkbox_row, text="R:")
+        r_label.pack(side=tk.LEFT)
+        r_check = ttk.Checkbutton(checkbox_row, variable=self.enable_R_bounds)
+        r_check.pack(side=tk.LEFT, padx=(0, 10))
+
+        # L checkbox
+        l_label = ttk.Label(checkbox_row, text="L:")
+        l_label.pack(side=tk.LEFT)
+        l_check = ttk.Checkbutton(checkbox_row, variable=self.enable_L_bounds)
+        l_check.pack(side=tk.LEFT, padx=(0, 10))
+
+        # C checkbox
+        c_label = ttk.Label(checkbox_row, text="C:")
+        c_label.pack(side=tk.LEFT)
+        c_check = ttk.Checkbutton(checkbox_row, variable=self.enable_C_bounds)
+        c_check.pack(side=tk.LEFT)
+
+
+    # Optimization Tolerance and default bound Section
+
+        tolerances_frame = ttk.Frame(main_frame)
+        tolerances_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        tolerances_label = ttk.Label(tolerances_frame, text="Optimization Tolerances:")
+        tolerances_label.pack(side=tk.TOP, anchor="w", pady=5)
+
+        # Row of labeled entries
+        entries_row = ttk.Frame(tolerances_frame)
+        entries_row.pack(side=tk.TOP, anchor="w")
+
+        # xtol
+        xtol_label = ttk.Label(entries_row, text="xtol:")
+        xtol_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.xtol_var = tk.StringVar(value="1e-12")
+        self.xtol_entry = ttk.Entry(entries_row, width=10,textvariable=self.xtol_var)
+        self.xtol_entry.pack(side=tk.LEFT, padx=(0, 15))
+        self.xtol_entry.bind("<FocusOut>", lambda e: self.validate_float("xtol_var"))
+
+        # gtol
+        gtol_label = ttk.Label(entries_row, text="gtol:")
+        gtol_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.gtol_var = tk.StringVar(value="1e-12")
+        self.gtol_entry = ttk.Entry(entries_row, width=10,textvariable=self.gtol_var)
+        self.gtol_entry.pack(side=tk.LEFT, padx=(0, 15))
+        self.gtol_entry.bind("<FocusOut>", lambda e: self.validate_float("gtol_var"))
+
+        # ftol
+        ftol_label = ttk.Label(entries_row, text="ftol:")
+        ftol_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.ftol_var = tk.StringVar(value="1e-12")
+        self.ftol_entry = ttk.Entry(entries_row, width=10,textvariable=self.ftol_var)
+        self.ftol_entry.pack(side=tk.LEFT)
+        self.ftol_entry.bind("<FocusOut>", lambda e: self.validate_float("ftol_var"))
 
         # --- Navigation Buttons ---
         navigation_frame = ttk.Frame(self)
@@ -310,6 +398,10 @@ class OptimizationSettingsWindow(tk.Frame):
         optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
+        self.controller.update_app_data("optimization_tolerances", [float(self.xtol_var.get()),float(self.gtol_var.get()),float(self.ftol_var.get())])
+        self.controller.update_app_data("RLC_bounds", [self.enable_R_bounds.get(),self.enable_L_bounds.get(),self.enable_C_bounds.get()])
+        print(f"new tolerances are {self.controller.get_app_data("optimization_tolerances")}")
+        print(f"RLC Default bounds {self.controller.get_app_data("RLC_bounds")} respectively")
 
 ###########################################################################################################################################
         #SET VARIABLES FOR OPTIMIZATION

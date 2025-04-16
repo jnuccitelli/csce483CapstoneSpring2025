@@ -42,7 +42,7 @@ node_constraints = {
     'V(3)': (1.0, None)   # Example: V(3) must be >= 1V
 }
 """
-def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netlist, writable_netlist_path: str, node_constraints: dict, equality_part_constraints: list,queue) -> None:
+def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netlist, writable_netlist_path: str, node_constraints: dict, equality_part_constraints: list,queue, custom_xtol= 1e-12,custom_gtol= 1e-12,custom_ftol= 1e-12) -> None:
     old_stdout = sys.stdout
     sys.stdout = io.StringIO()  # Redirect output
 
@@ -133,7 +133,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
             return ideal_interpolation(run_state["master_x_points"]) - xyce_interpolation(run_state["master_x_points"])
 
         result = least_squares(residuals, changing_components_values, method='trf', bounds=(lower_bounds, upper_bounds), args=(changing_components,),
-                               xtol=1e-12, gtol=1e-12, ftol = 1e-12, jac='3-point', verbose=1)
+                               xtol=custom_xtol, gtol=custom_gtol, ftol = custom_ftol, jac='3-point', verbose=1)
 
         for i in range(len(changing_components)):
             changing_components[i].value = result.x[i]
