@@ -41,8 +41,40 @@ class OptimizationSettingsWindow(tk.Frame):
         self.y_param_dropdown_selected = False
 
         # --- Main Layout Frame ---
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        #main_frame = ttk.Frame(self)
+        #main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # --- Scrollable Canvas Setup ---
+        canvas = tk.Canvas(self, borderwidth=0)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Add vertical scrollbar
+        vsb = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.configure(yscrollcommand=vsb.set)
+
+        # Create a frame inside the canvas
+        scrollable_frame = ttk.Frame(canvas)
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        # Add the scrollable frame to the canvas window
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        def resize_scrollable_frame(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.bind("<Configure>", resize_scrollable_frame)
+
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        # For Windows and macOS
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        # Now use scrollable_frame instead of main_frame
+        main_frame = scrollable_frame
 
         # --- Optimization Type Dropdown ---
         optimization_type_frame = ttk.Frame(main_frame)
@@ -220,8 +252,8 @@ class OptimizationSettingsWindow(tk.Frame):
         self.ftol_entry.bind("<FocusOut>", lambda e: self.validate_float("ftol_var"))
 
         # --- Navigation Buttons ---
-        navigation_frame = ttk.Frame(self)
-        navigation_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+        navigation_frame = ttk.Frame(main_frame)
+        navigation_frame.pack(side=tk.TOP, fill=tk.X, pady=10)
 
         back_button = ttk.Button(navigation_frame, text="Back", command=self.go_back)
         back_button.pack(side=tk.LEFT, padx=5)
