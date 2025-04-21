@@ -11,8 +11,10 @@ class EditConstraintDialog(tk.Toplevel):
         parameters: List[str],
         node_expressions: List[str],
         constraint: Dict[str, str],
+        allowed_left_items: List[str],
     ):
         super().__init__(parent)
+        self.allowed_left_items = allowed_left_items
         self.title("Edit Constraint")
         self.parameters = parameters
         self.node_expressions = node_expressions
@@ -29,8 +31,22 @@ class EditConstraintDialog(tk.Toplevel):
         left_label = ttk.Label(left_frame, text="Left:")
         left_label.pack()
         self.left_var = tk.StringVar(value=constraint["left"])  # Pre-populate
-        left_entry = ttk.Entry(left_frame, textvariable=self.left_var, width=15)
-        left_entry.pack(side=tk.LEFT)
+        self.left_combobox = ttk.Combobox(
+            left_frame,
+            textvariable=self.left_var,  # self.left_var is already set
+            values=self.allowed_left_items,  # Use the passed list
+            state="readonly",  # Make it a dropdown only
+            width=20,  # Adjust width if needed
+        )
+        self.left_combobox.pack(fill=tk.X)
+        # Optional: Add check if initial value is valid
+        if (
+            self.left_var.get() not in self.allowed_left_items
+            and self.allowed_left_items
+        ):
+            self.left_var.set(self.allowed_left_items[0])  # Default to first if invalid
+        elif not self.allowed_left_items:
+            self.left_var.set("")  # Clear if list is empty
 
         # --- Operator ---
         operator_frame = ttk.Frame(self)

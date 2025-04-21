@@ -13,30 +13,50 @@ from ..utils import import_constraints_from_file, export_constraints_to_file
 
 class OptimizationSettingsWindow(tk.Frame):
     def validate_float(self, var_name):
-            try:
-                val = float(getattr(self, var_name).get())
-                return True
-            except ValueError:
-                messagebox.showerror("Invalid Input", f"Please enter a valid number for {var_name.replace('_var', '')}")
-                getattr(self, var_name).set("1e-12")  # Reset to default if invalid
-                return False
+        try:
+            val = float(getattr(self, var_name).get())
+            return True
+        except ValueError:
+            messagebox.showerror(
+                "Invalid Input",
+                f"Please enter a valid number for {var_name.replace('_var', '')}",
+            )
+            getattr(self, var_name).set("1e-12")  # Reset to default if invalid
+            return False
 
     def __init__(self, parent: tk.Tk, controller: "AppController"):
         super().__init__(parent)
-        self.controller = controller
-        self.selected_parameters = self.controller.get_app_data("selected_parameters")
-        self.constraints: List[Dict[str, str]] = []
-        self.nodes = self.controller.get_app_data("nodes")
+        self.controller = controller  # Assign controller first
+
+        # --- Get data needed to build the lists ---
+        self.selected_parameters = (
+            self.controller.get_app_data("selected_parameters") or []
+        )  # Ensure it's a list
+        self.nodes = self.controller.get_app_data("nodes") or []  # Ensure it's a list
+
+        # --- Now build the lists ---
         self.node_voltage_expressions = [
             f"V({node})" for node in self.nodes if node != "0"
-        ]  # Exclude ground node '0' typically
+        ]
 
-        self.all_allowed_validation_vars = (
-            self.selected_parameters or []
-        ) + self.node_voltage_expressions
+        # --- NOW it's safe to create the combined list ---
+        self.allowed_constraint_left_sides: List[str] = (
+            self.selected_parameters + self.node_voltage_expressions
+        )
+        self.allowed_constraint_left_sides.sort()
+        # --- End Fix ---
+
+        # --- Continue with other initializations ---
+        self.constraints: List[Dict[str, str]] = []
+        self.all_allowed_validation_vars = (  # This line should also come after definitions
+            self.selected_parameters + self.node_voltage_expressions
+        )
+        print(
+            f"Allowed Constraint Left Sides: {self.allowed_constraint_left_sides}"
+        )  # Debugging
         print(
             f"Allowed Vars for Validation: {self.all_allowed_validation_vars}"
-        )  # For debugging
+        )  # Debugging
         self.function_button_pressed = False
         self.y_param_dropdown_selected = False
 
@@ -84,7 +104,7 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         optimization_type_label.pack(side=tk.LEFT, anchor=tk.W, pady=5)
 
-        self.optimization_types = ["Curve Fit"] #"Maximize/Minimize", 
+        self.optimization_types = ["Curve Fit"]  # "Maximize/Minimize",
         self.optimization_type_var = tk.StringVar(value="Curve Fit")
         optimization_type_dropdown = ttk.Combobox(
             optimization_type_frame,
@@ -101,7 +121,6 @@ class OptimizationSettingsWindow(tk.Frame):
         setting_panel_frame = ttk.Frame(main_frame)
         # Pack this frame where the settings should appear
         setting_panel_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
-
 
         # Instantiate CurveFitSettings, attaching it to the setting_panel_frame
         # Make sure to include the inputs_completed_callback from the main branch version
@@ -177,14 +196,15 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         edit_constraint_button.pack(side=tk.LEFT, padx=2)
 
-
-
         # Frame for default bounds
         default_bounds_frame = ttk.Frame(main_frame)
         default_bounds_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
 
         # Label for section
-        default_bounds_label = ttk.Label(default_bounds_frame, text="Enable Default Bounds For Unspecified Component Bounds (1/10th minimum and 10x maximum of starting value):")
+        default_bounds_label = ttk.Label(
+            default_bounds_frame,
+            text="Enable Default Bounds For Unspecified Component Bounds (1/10th minimum and 10x maximum of starting value):",
+        )
         default_bounds_label.pack(side=tk.TOP, anchor=tk.W, pady=(5, 0))
 
         # Booleans for checkboxes
@@ -214,8 +234,7 @@ class OptimizationSettingsWindow(tk.Frame):
         c_check = ttk.Checkbutton(checkbox_row, variable=self.enable_C_bounds)
         c_check.pack(side=tk.LEFT)
 
-
-    # Optimization Tolerance and default bound Section
+        # Optimization Tolerance and default bound Section
 
         tolerances_frame = ttk.Frame(main_frame)
         tolerances_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
@@ -231,7 +250,7 @@ class OptimizationSettingsWindow(tk.Frame):
         xtol_label = ttk.Label(entries_row, text="xtol:")
         xtol_label.pack(side=tk.LEFT, padx=(0, 5))
         self.xtol_var = tk.StringVar(value="1e-12")
-        self.xtol_entry = ttk.Entry(entries_row, width=10,textvariable=self.xtol_var)
+        self.xtol_entry = ttk.Entry(entries_row, width=10, textvariable=self.xtol_var)
         self.xtol_entry.pack(side=tk.LEFT, padx=(0, 15))
         self.xtol_entry.bind("<FocusOut>", lambda e: self.validate_float("xtol_var"))
 
@@ -239,7 +258,7 @@ class OptimizationSettingsWindow(tk.Frame):
         gtol_label = ttk.Label(entries_row, text="gtol:")
         gtol_label.pack(side=tk.LEFT, padx=(0, 5))
         self.gtol_var = tk.StringVar(value="1e-12")
-        self.gtol_entry = ttk.Entry(entries_row, width=10,textvariable=self.gtol_var)
+        self.gtol_entry = ttk.Entry(entries_row, width=10, textvariable=self.gtol_var)
         self.gtol_entry.pack(side=tk.LEFT, padx=(0, 15))
         self.gtol_entry.bind("<FocusOut>", lambda e: self.validate_float("gtol_var"))
 
@@ -247,7 +266,7 @@ class OptimizationSettingsWindow(tk.Frame):
         ftol_label = ttk.Label(entries_row, text="ftol:")
         ftol_label.pack(side=tk.LEFT, padx=(0, 5))
         self.ftol_var = tk.StringVar(value="1e-12")
-        self.ftol_entry = ttk.Entry(entries_row, width=10,textvariable=self.ftol_var)
+        self.ftol_entry = ttk.Entry(entries_row, width=10, textvariable=self.ftol_var)
         self.ftol_entry.pack(side=tk.LEFT)
         self.ftol_entry.bind("<FocusOut>", lambda e: self.validate_float("ftol_var"))
 
@@ -284,6 +303,7 @@ class OptimizationSettingsWindow(tk.Frame):
 
     def on_optimization_type_change(self, event=None):
         selected_type = self.optimization_type_var.get()
+
     #     if selected_type == "Maximize/Minimize":
     #         self.curve_fit_settings.pack_forget()
     #         self.max_min_settings.pack(fill=tk.BOTH, expand=True)
@@ -293,7 +313,10 @@ class OptimizationSettingsWindow(tk.Frame):
 
     def open_add_constraint_window(self):
         dialog = AddConstraintDialog(
-            self, self.selected_parameters, self.node_voltage_expressions
+            self,
+            self.selected_parameters,
+            self.node_voltage_expressions,
+            self.allowed_constraint_left_sides,
         )
         self.wait_window(dialog)
         if dialog.constraint:
@@ -343,7 +366,11 @@ class OptimizationSettingsWindow(tk.Frame):
 
     def open_edit_constraint_dialog(self, constraint: Dict[str, str], index: int):
         dialog = EditConstraintDialog(
-            self, self.selected_parameters, self.node_voltage_expressions, constraint
+            self,
+            self.selected_parameters,
+            self.node_voltage_expressions,
+            constraint,
+            self.allowed_constraint_left_sides,
         )
         self.wait_window(dialog)  # Wait for dialog to close
         if dialog.constraint is not None:
@@ -430,13 +457,31 @@ class OptimizationSettingsWindow(tk.Frame):
         optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
-        self.controller.update_app_data("optimization_tolerances", [float(self.xtol_var.get()),float(self.gtol_var.get()),float(self.ftol_var.get())])
-        self.controller.update_app_data("RLC_bounds", [self.enable_R_bounds.get(),self.enable_L_bounds.get(),self.enable_C_bounds.get()])
-        print(f"new tolerances are {self.controller.get_app_data("optimization_tolerances")}")
-        print(f"RLC Default bounds {self.controller.get_app_data("RLC_bounds")} respectively")
+        self.controller.update_app_data(
+            "optimization_tolerances",
+            [
+                float(self.xtol_var.get()),
+                float(self.gtol_var.get()),
+                float(self.ftol_var.get()),
+            ],
+        )
+        self.controller.update_app_data(
+            "RLC_bounds",
+            [
+                self.enable_R_bounds.get(),
+                self.enable_L_bounds.get(),
+                self.enable_C_bounds.get(),
+            ],
+        )
+        print(
+            f"new tolerances are {self.controller.get_app_data("optimization_tolerances")}"
+        )
+        print(
+            f"RLC Default bounds {self.controller.get_app_data("RLC_bounds")} respectively"
+        )
 
-###########################################################################################################################################
-        #SET VARIABLES FOR OPTIMIZATION
+        ###########################################################################################################################################
+        # SET VARIABLES FOR OPTIMIZATION
         self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
@@ -459,10 +504,10 @@ class OptimizationSettingsWindow(tk.Frame):
             return
         export_constraints_to_file(self.constraints)
 
-    def add_part_constraints(self,constraints, netlist):
+    def add_part_constraints(self, constraints, netlist):
         equalConstraints = []
         for constraint in constraints:
-            #Parse out  components
+            # Parse out  components
             if constraint["type"] == "parameter":
                 left = constraint["left"].strip()
                 right = constraint["right"].strip()
@@ -475,7 +520,9 @@ class OptimizationSettingsWindow(tk.Frame):
                         match constraint["operator"]:
                             case ">=":
                                 component.minVal = eval(right, componentVals)
-                                print(f"{component.name} minVal set to {component.minVal}")
+                                print(
+                                    f"{component.name} minVal set to {component.minVal}"
+                                )
                             case "=":
                                 component.value = eval(right, componentVals)
                                 component.variable = False
@@ -484,26 +531,32 @@ class OptimizationSettingsWindow(tk.Frame):
                                 print(f"{component.name} set to {component.value}")
                             case "<=":
                                 component.maxVal = eval(right, componentVals)
-                                print(f"{component.name} maxVal set to {component.maxVal}")
+                                print(
+                                    f"{component.name} maxVal set to {component.maxVal}"
+                                )
                         break
         return equalConstraints
-    
+
     def add_node_constraints(self, constraints):
         formattedNodeConstraints = {}
         nodes = {}
         for constraint in constraints:
             if constraint["type"] == "node":
-                nodes[constraint["left"].strip()] = [None,None]
+                nodes[constraint["left"].strip()] = [None, None]
         for constraint in constraints:
             if constraint["type"] == "node":
                 match constraint["operator"]:
-                            case ">=":
-                                nodes[constraint["left"].strip()][0] = float(constraint["right"].strip())
-                            case "<=":
-                                nodes[constraint["left"].strip()][1] = float(constraint["right"].strip())
+                    case ">=":
+                        nodes[constraint["left"].strip()][0] = float(
+                            constraint["right"].strip()
+                        )
+                    case "<=":
+                        nodes[constraint["left"].strip()][1] = float(
+                            constraint["right"].strip()
+                        )
         for node in nodes:
-            formattedNodeConstraints[node] = (nodes[node][0],nodes[node][1])
-            #left = constraint["left"].strip()
-            #right = float(constraint["right"].strip())
-            #formattedNodeConstraints[left] = (None,None)
+            formattedNodeConstraints[node] = (nodes[node][0], nodes[node][1])
+            # left = constraint["left"].strip()
+            # right = float(constraint["right"].strip())
+            # formattedNodeConstraints[left] = (None,None)
         return formattedNodeConstraints
