@@ -19,34 +19,34 @@ This file details the first window of the application that allows users to uploa
 This file builds the UI for parameter selection.  It does this by creating a Netlist object with the netlist file path as an argument, triggering the __init__ function detailed in netlist_parse.py.  This information is then displayed in a selectable list, and a button allows navigation to the next window, optimization settings.
 
 ### optimization_settings/optimization_settings_window.py
-This file
+
 
 ### curve_fit_window.py
-This 
+
 
 ### optimization_summary.py
-This 
+
 
 ### optimization_settings/add_constraint_dialog.py
-This 
+
 
 ### optimization_settings/constraint_table.py
-This 
+
 
 ### optimization_settings/curve_fit_settings.py
-This 
+
 
 ### optimization_settings/edit_constraint_dialog.py
-This 
+
 
 ### optimization_settings/expression_dialog.py
-This 
+
 
 ### optimization_settings/expression_evaluator.py
-This 
+
 
 ### optimization_settings/max_min_settings.py
-This 
+
 
 
 ## Backend
