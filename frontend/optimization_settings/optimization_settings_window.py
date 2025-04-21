@@ -92,7 +92,9 @@ class OptimizationSettingsWindow(tk.Frame):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
         # For Windows and macOS
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        #canvas.bind("<MouseWheel>", _on_mousewheel)
+        canvas.bind("<Enter>", lambda e: scrollable_frame.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind("<Leave>", lambda e: scrollable_frame.unbind_all("<MouseWheel>"))
         # Now use scrollable_frame instead of main_frame
         main_frame = scrollable_frame
 
