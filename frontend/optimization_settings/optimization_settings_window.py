@@ -4,9 +4,7 @@ from tkinter import ttk, messagebox
 from typing import List, Dict, Any, Optional
 from .add_constraint_dialog import AddConstraintDialog
 from .edit_constraint_dialog import EditConstraintDialog
-#from .expression_dialog import ExpressionDialog
 from .constraint_table import ConstraintTable
-#from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
 from ..utils import import_constraints_from_file, export_constraints_to_file
 
