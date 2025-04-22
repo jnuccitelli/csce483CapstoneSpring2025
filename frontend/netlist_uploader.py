@@ -1,8 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from .utils import open_file_dialog
-
-# from .app_controller import AppController  <- REMOVE THIS LINE
 from typing import Optional
 
 
@@ -13,7 +11,7 @@ class NetlistUploaderWindow(tk.Frame):
         self, parent: tk.Tk, controller: "AppController"
     ):  # Use string annotation for type hint
         super().__init__(parent)
-        self.controller = controller  # Controller is passed as an argument
+        self.controller = controller
         self.netlist_path: Optional[str] = None
 
         self.upload_button = ttk.Button(

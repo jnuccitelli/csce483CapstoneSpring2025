@@ -14,29 +14,9 @@ Two constraint types:
     This will probably mess up next part value selection if if not done well
 2. Part value constraints
     These are simpler to do and can be done using bounds arg of least_squares
-    Equation type ones (i.e. R1 + R2 < 4000) are trickier perhaps
-"""
-# Part Value = Constant
-#   TODO (but not really because Not really a case because it would just not be a variable)
-# Node Value = Constant
-#   TODO
-# Part Value <, > Constant
-#   TEST by using bounds arg
-# Node Value <, > Constant
-#   TEST by throwing out/skewing Xyce run output
-# Part Value = Equation
-#   TODO 
-# Node Value = Equation
-#   TODO
-# Part Value <, > Equation
-#   TODO
-# Node Value <, > Equation
-#   TODO
+    Equation type ones (i.e. R1 + R2 < 4000) are trickier perhaps and not currently supported.
 
-# TODO: Update Component class with minVal, maxVal when constratints are set
-"""
 node_constraints structure
-
 node_constraints = {
     'V(2)': (None, 5.0),  # Example: V(2) must be <= 5V
     'V(3)': (1.0, None)   # Example: V(3) must be >= 1V
@@ -96,9 +76,7 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
                         component.modified = True
             
             new_netlist.class_to_file(local_netlist_file)
-            subprocess.run(["Xyce", "-delim", "COMMA", "-quiet", local_netlist_file],
-    stdout=subprocess.PIPE,  # Capture stdout
-    stderr=subprocess.PIPE)
+            subprocess.run(["Xyce", "-delim", "COMMA", "-quiet", local_netlist_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             #TODO: Smart way to set timestep and ensure consistency. Rn just decided arbitrarily by first run
             xyce_parse = parse_xyce_prn_output(local_netlist_file + ".prn")
@@ -120,14 +98,11 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
 
             xyce_interpolation = interp1d(X_ARRAY_FROM_XYCE, Y_ARRAY_FROM_XYCE)
 
-            #sys.stdout = old_stdout
-            #print(f"Xyce parse data is {xyce_parse[1]}")
-
             for node_name, (node_lower, node_upper) in node_constraints.items():
                 node_index = xyce_parse[0].index(node_name.upper())
                 node_values = np.array([float(x[node_index]) for x in xyce_parse[1]])
                 if (node_lower is not None and np.any(node_values < node_lower)) or (node_upper is not None and np.any(node_values > node_upper)):
-                    return np.full_like(run_state["master_x_points"], 1e6)  # Large penalty
+                    return np.full_like(run_state["master_x_points"], 1e6)  # TODO: Right now its just an arbitraritly large penalty
 
             # TODO: Proper residual? (subrtarct, rms, etc.)
             return ideal_interpolation(run_state["master_x_points"]) - xyce_interpolation(run_state["master_x_points"])
@@ -151,30 +126,17 @@ def curvefit_optimize(target_value: str, target_curve_rows: list, netlist: Netli
 
         sys.stdout.flush()
         captured = sys.stdout.getvalue()
-        #sys.stdout = old_stdout
-        #print("CAPTURED OUTPUT:")
-        #print(captured)
         lines = captured.split("\n")
-        #print("CHOSEN LINE:")
         line = next((item for item in lines if item.startswith("Function evaluations")), None)
-        #print(line)
         values = line.split()
         leastSquaresIterations = int(values[2].rstrip(","))
         initialCost = float(values[5].rstrip(","))
         finalCost = float(values[8].rstrip(","))
         optimality = float(values[11].rstrip("."))
-        #print(lines)
 
     finally:
         sys.stdout = old_stdout  # Restore stdout no matter what
-        #print("Captured output:", repr(captured))
-        #print(xyceRuns)
-        #print(leastSquaresIterations)
-        #print(initialCost)
-        #print(finalCost)
-        #print(optimality)
     return [xyceRuns, leastSquaresIterations, initialCost, finalCost, optimality]
-
 
 # Voltage Divider Test
 # WRITABLE_NETLIST_PATH = r"C:\Users\User\capstone\csce483CapstoneSpring2025\netlists\voltageDividerCopy.txt"

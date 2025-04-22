@@ -1,9 +1,7 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, simpledialog
-
-# from .app_controller import AppController  # <- REMOVE THIS LINE
+from tkinter import ttk, messagebox
 import re
-from typing import List, Dict, Tuple, Set
+from typing import List
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -107,9 +105,6 @@ class ParameterSelectionWindow(tk.Frame):
         )
         self.continue_button.pack(side=tk.RIGHT, padx=10, pady=10)  # Pack on the RIGHT
 
-###############################################################################
- # select all & remove all #
-
         self.select_all_button = ttk.Button(
             self.buttons_frame, text="Select All ->", command=self.select_all_parameters
         )
@@ -119,10 +114,6 @@ class ParameterSelectionWindow(tk.Frame):
             self.buttons_frame, text="<- Remove All", command=self.remove_all_parameters
         )
         self.remove_all_button.pack(pady=5)
-
-    # select all & remove all #
-###############################################################################
-
 
         # Load and parse parameters when the window is created
         if self.netlist_path:
@@ -157,19 +148,15 @@ class ParameterSelectionWindow(tk.Frame):
 
         return parameters
 
-################# added sorted #################
     def update_available_listbox(self):
         self.available_listbox.delete(0, tk.END)
         for param in sorted(self.available_parameters):
             self.available_listbox.insert(tk.END, param)
-################# ################# #################
 
-################# ################# #################
     def update_selected_listbox(self):
         self.selected_listbox.delete(0, tk.END)
         for param in sorted(self.selected_parameters):
             self.selected_listbox.insert(tk.END, param)
-################# ################# #################
 
     def add_parameters(self):
         selected_indices = self.available_listbox.curselection()
@@ -212,8 +199,6 @@ class ParameterSelectionWindow(tk.Frame):
         # Placeholder for now
         self.controller.navigate("optimization_settings")
 
-    ###############################################################################
-    # select all & remove all #
 
     def select_all_parameters(self):
         for param in list(self.available_parameters):  
@@ -240,8 +225,5 @@ class ParameterSelectionWindow(tk.Frame):
         self.update_available_listbox()
         self.update_selected_listbox()
         self.continue_button.config(state=tk.DISABLED)
-
-     # select all & remove all #
-    ###############################################################################
 
 

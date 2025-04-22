@@ -27,7 +27,6 @@ class Netlist:
                 subCkt = False
                 for line in file:
                     values=line.strip().split()
-                    #print(values)
                     if(values == [""] or not values):
                         continue
                     elif(values[0].upper() == ".SUBCKT"):
@@ -37,7 +36,6 @@ class Netlist:
                     if(subCkt):
                         continue
                     match values[0][0].upper():
-                        #Prob skipping K, X, @, not anymore aiden....
                         case 'X':
                             for i in range(1,len(values) - 1):
                                 nodes.add(values[i])
@@ -54,10 +52,6 @@ class Netlist:
                         case "B" | "C" | "D" | "F" | "H" | "I" | "L" | "R" | "V" | "W":
                             if values[0][0] == "R" or values[0][0] == "L" or values[0][0] == "C":
                                 newComponent = Component(values[0],values[0][0], self.componentValConversion(values[3]))
-                                #Default mins and max are 10x or 1/10 of initial value
-                                #newComponent.minVal = newComponent.value/10
-                                #newComponent.maxVal = newComponent.value*10
-                                #print(f"{newComponent.name} value is {newComponent.value}. Initial min and max are {newComponent.minVal} and {newComponent.maxVal}")
                                 components.append(newComponent)
                             nodes.add(values[1])
                             nodes.add(values[2])
@@ -143,8 +137,6 @@ class Netlist:
         'z': -21,
         'y': -24
         }
-        #print("The last value is: ")
-        #print(strVal[-1])
         if strVal[-1] in data:
             baseVal = strVal[:-1]
             newStr= f"{baseVal}e{data[strVal[-1]]}"
@@ -156,6 +148,7 @@ class Netlist:
         # the first arg is the file path
         # the next four args are a string with scientfic notation prefixes ie 10n, 0.001n, 10m (this is just 10 seconds)
         # target node is the name of the node that gets printed to xyce output as a string
+        # constrained nodes are non target nodes that need to be printed to ensure constraints are met
         try:
             with open(file_path,"r") as file:
                 data = file.readlines()
@@ -163,7 +156,6 @@ class Netlist:
             newData = []
             for line in data:
                 values=line.strip().split()
-                #print(values)
                 if(not values):
                     continue
                 if(values[0].upper() == ".TRAN"):
@@ -185,7 +177,8 @@ class Netlist:
             print(f"Error: The file '{file_path}' was not found.")
         except Exception as e:
             print(f"An error occurred: {e}")
-        return 
+        return
+
 # Test Statements
 # myNetlist = Netlist("./netlists/voltageDivider.txt")
 # myNetlist.writeTranCmdsToFile("./netlists/voltageDivider.txt","1m","100m","0m",".1m","2")

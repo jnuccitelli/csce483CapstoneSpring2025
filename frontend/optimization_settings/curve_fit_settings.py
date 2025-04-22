@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from typing import List, Dict, Any
-from .expression_dialog import ExpressionDialog
 import numpy as np
 import csv
 from enum import Enum
@@ -26,7 +25,6 @@ class CurveFitSettings(tk.Frame):
         self.inputs_completed = False
         self.time_tuples_list = []
 
-        
         # --- combobox for: line input vs heavyside vs custom csv
         self.select_input_type_frame = ttk.Frame(self)
         self.select_input_type_frame.pack(side=tk.TOP, fill=tk.X)
@@ -284,4 +282,3 @@ class CurveFitSettings(tk.Frame):
         settings["x_parameter"] = self.x_parameter_var.get()
         settings["y_parameter"] = self.y_parameter_var.get()
         return settings
-    

@@ -9,8 +9,6 @@ from typing import Dict, Any, Optional
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from backend.netlist_parse import Netlist, Component
-
 
 class AppController:
     """Manages the application flow and data between windows."""
@@ -18,13 +16,13 @@ class AppController:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("Circuit Optimizer")
-        self.root.geometry("800x600")  # Increased size for the select parameter window
+        self.root.geometry("800x600")
         self.current_window: Optional[tk.Frame] = None
         # Store data that needs to be shared between windows
         self.app_data: Dict[str, Any] = {
             "netlist_path": None,
             "selected_parameters": [],
-            "optimization_settings": {},  # Added
+            "optimization_settings": {},
             "nodes": set(),
             "optimization_results": [],
             "netlist_object": None,
@@ -60,11 +58,11 @@ class AppController:
         """Navigates to the specified window."""
         if target_window_name == "parameter_selection":
             self.show_parameter_selection()
-        elif target_window_name == "netlist_uploader":  # Add this for the "Back" button
+        elif target_window_name == "netlist_uploader":
             self.show_netlist_uploader()
-        elif target_window_name == "optimization_settings":  # Added
+        elif target_window_name == "optimization_settings":
             self.show_optimization_settings()
-        elif target_window_name == "optimization_summary":  # Added
+        elif target_window_name == "optimization_summary":
             self.show_optimization_summary()
 
     def update_app_data(self, key: str, value: Any) -> None:

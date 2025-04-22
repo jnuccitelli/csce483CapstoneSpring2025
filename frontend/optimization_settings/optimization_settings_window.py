@@ -4,9 +4,9 @@ from tkinter import ttk, messagebox
 from typing import List, Dict, Any, Optional
 from .add_constraint_dialog import AddConstraintDialog
 from .edit_constraint_dialog import EditConstraintDialog
-from .expression_dialog import ExpressionDialog
+#from .expression_dialog import ExpressionDialog
 from .constraint_table import ConstraintTable
-from .max_min_settings import MaxMinSettings
+#from .max_min_settings import MaxMinSettings
 from .curve_fit_settings import CurveFitSettings
 from ..utils import import_constraints_from_file, export_constraints_to_file
 
@@ -44,25 +44,15 @@ class OptimizationSettingsWindow(tk.Frame):
             self.selected_parameters + self.node_voltage_expressions
         )
         self.allowed_constraint_left_sides.sort()
-        # --- End Fix ---
 
         # --- Continue with other initializations ---
         self.constraints: List[Dict[str, str]] = []
         self.all_allowed_validation_vars = (  # This line should also come after definitions
             self.selected_parameters + self.node_voltage_expressions
         )
-        print(
-            f"Allowed Constraint Left Sides: {self.allowed_constraint_left_sides}"
-        )  # Debugging
-        print(
-            f"Allowed Vars for Validation: {self.all_allowed_validation_vars}"
-        )  # Debugging
         self.function_button_pressed = False
         self.y_param_dropdown_selected = False
 
-        # --- Main Layout Frame ---
-        #main_frame = ttk.Frame(self)
-        #main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         # --- Scrollable Canvas Setup ---
         canvas = tk.Canvas(self, borderwidth=0)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -89,10 +79,10 @@ class OptimizationSettingsWindow(tk.Frame):
         canvas.bind("<Configure>", resize_scrollable_frame)
 
         def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+             if canvas.winfo_exists():
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
         # For Windows and macOS
-        #canvas.bind("<MouseWheel>", _on_mousewheel)
         canvas.bind("<Enter>", lambda e: scrollable_frame.bind_all("<MouseWheel>", _on_mousewheel))
         canvas.bind("<Leave>", lambda e: scrollable_frame.unbind_all("<MouseWheel>"))
         # Now use scrollable_frame instead of main_frame
@@ -119,7 +109,7 @@ class OptimizationSettingsWindow(tk.Frame):
             "<<ComboboxSelected>>", self.on_optimization_type_change
         )
 
-        # # --- Settings Panels (Max/Min and Curve Fit) ---
+        # # --- Settings Panels (Curve Fit) ---
         setting_panel_frame = ttk.Frame(main_frame)
         # Pack this frame where the settings should appear
         setting_panel_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
@@ -135,9 +125,6 @@ class OptimizationSettingsWindow(tk.Frame):
         )
         # Pack the CurveFitSettings panel so it's visible
         self.curve_fit_settings.pack(fill=tk.X)
-        # self.max_min_settings = MaxMinSettings(setting_panel_frame, self.selected_parameters)
-        # self.max_min_settings.pack(fill=tk.X)
-        # self.max_min_settings.pack_forget()  # Initially hidden
 
         # --- Constraints Table ---
         constraints_frame = ttk.Frame(main_frame)
@@ -145,7 +132,7 @@ class OptimizationSettingsWindow(tk.Frame):
         constraints_label = ttk.Label(constraints_frame, text="Constraints:")
         constraints_label.pack(
             side=tk.TOP, anchor=tk.W, pady=5
-        )  # Added a label, and constraints are row 2
+        )
 
         self.constraint_table = ConstraintTable(
             constraints_frame,
@@ -306,13 +293,6 @@ class OptimizationSettingsWindow(tk.Frame):
     def on_optimization_type_change(self, event=None):
         selected_type = self.optimization_type_var.get()
 
-    #     if selected_type == "Maximize/Minimize":
-    #         self.curve_fit_settings.pack_forget()
-    #         self.max_min_settings.pack(fill=tk.BOTH, expand=True)
-    #     elif selected_type == "Curve Fit":
-    #         self.max_min_settings.pack_forget()
-    #         self.curve_fit_settings.pack(fill=tk.BOTH, expand=True)
-
     def open_add_constraint_window(self):
         dialog = AddConstraintDialog(
             self,
@@ -453,9 +433,6 @@ class OptimizationSettingsWindow(tk.Frame):
             "optimization_type": self.optimization_type_var.get(),
             "constraints": self.constraints,
         }
-        # if self.optimization_type_var.get() == "Maximize/Minimize":
-        #     optimization_settings.update(self.max_min_settings.get_settings())
-        # elif self.optimization_type_var.get() == "Curve Fit":
         optimization_settings.update(self.curve_fit_settings.get_settings())
 
         self.controller.update_app_data("optimization_settings", optimization_settings)
@@ -475,15 +452,6 @@ class OptimizationSettingsWindow(tk.Frame):
                 self.enable_C_bounds.get(),
             ],
         )
-        print(
-            f"new tolerances are {self.controller.get_app_data("optimization_tolerances")}"
-        )
-        print(
-            f"RLC Default bounds {self.controller.get_app_data("RLC_bounds")} respectively"
-        )
-
-        ###########################################################################################################################################
-        # SET VARIABLES FOR OPTIMIZATION
         self.controller.navigate("optimization_summary")
 
     def import_constraints(self):
@@ -492,7 +460,7 @@ class OptimizationSettingsWindow(tk.Frame):
         if constraints is not None:
             # Clear existing constraints
             self.constraints = []
-            self.constraint_table.clear()  # Clear the Treeview
+            self.constraint_table.clear()
 
             # Add the imported constraints
             for constraint in constraints:
@@ -505,60 +473,3 @@ class OptimizationSettingsWindow(tk.Frame):
             messagebox.showwarning("Warning", "No constraints to export.")
             return
         export_constraints_to_file(self.constraints)
-
-    def add_part_constraints(self, constraints, netlist):
-        equalConstraints = []
-        for constraint in constraints:
-            # Parse out  components
-            if constraint["type"] == "parameter":
-                left = constraint["left"].strip()
-                right = constraint["right"].strip()
-
-                componentVals = {}
-                for component in netlist.components:
-                    componentVals[component.name] = component.value
-                for component in netlist.components:
-                    if left == component.name:
-                        match constraint["operator"]:
-                            case ">=":
-                                component.minVal = eval(right, componentVals)
-                                print(
-                                    f"{component.name} minVal set to {component.minVal}"
-                                )
-                            case "=":
-                                component.value = eval(right, componentVals)
-                                component.variable = False
-                                component.modified = True
-                                equalConstraints.append(constraint)
-                                print(f"{component.name} set to {component.value}")
-                            case "<=":
-                                component.maxVal = eval(right, componentVals)
-                                print(
-                                    f"{component.name} maxVal set to {component.maxVal}"
-                                )
-                        break
-        return equalConstraints
-
-    def add_node_constraints(self, constraints):
-        formattedNodeConstraints = {}
-        nodes = {}
-        for constraint in constraints:
-            if constraint["type"] == "node":
-                nodes[constraint["left"].strip()] = [None, None]
-        for constraint in constraints:
-            if constraint["type"] == "node":
-                match constraint["operator"]:
-                    case ">=":
-                        nodes[constraint["left"].strip()][0] = float(
-                            constraint["right"].strip()
-                        )
-                    case "<=":
-                        nodes[constraint["left"].strip()][1] = float(
-                            constraint["right"].strip()
-                        )
-        for node in nodes:
-            formattedNodeConstraints[node] = (nodes[node][0], nodes[node][1])
-            # left = constraint["left"].strip()
-            # right = float(constraint["right"].strip())
-            # formattedNodeConstraints[left] = (None,None)
-        return formattedNodeConstraints

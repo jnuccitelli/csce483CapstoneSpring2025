@@ -129,7 +129,6 @@ class ExpressionEvaluator:
         processed_expression, initial_names_found = self._preprocess_expression(
             expression
         )
-        # print(f"Original Expr: '{expression}' -> Processed Expr: '{processed_expression}'") # Debug
 
         # 2. Validate syntax and allowed names using AST on the *processed* expression
         try:
@@ -137,7 +136,6 @@ class ExpressionEvaluator:
             # Basic check - AST parsing is the real security check
             # allowed_chars_pattern = r"^[a-zA-Z0-9_+\-*/().\s]+$" # Allow underscore for V_2
             # if not re.match(allowed_chars_pattern, processed_expression):
-            #     # print(f"Debug: Invalid chars in processed: {processed_expression}")
             #     return False, []
 
             parsed_expression = ast.parse(processed_expression, mode="eval")
@@ -147,7 +145,6 @@ class ExpressionEvaluator:
                 if isinstance(node, ast.Name):
                     # Check if the (potentially mangled) name is allowed
                     if node.id not in self.full_allowed_symbols:
-                        # print(f"Debug: Disallowed name: {node.id}")
                         return False, []  # Disallowed variable or function name
                     if node.id in self.allowed_mangled_vars:
                         actual_mangled_vars_used.add(node.id)  # Track used vars/nodes
@@ -162,7 +159,6 @@ class ExpressionEvaluator:
                             if isinstance(node.func, ast.Name)
                             else "unknown"
                         )
-                        # print(f"Debug: Disallowed function call: {func_name}")
                         return False, []
                 elif not isinstance(
                     node,
@@ -184,7 +180,6 @@ class ExpressionEvaluator:
                     ),
                 ):
                     # Disallow other potentially unsafe AST node types
-                    # print(f"Debug: Disallowed AST node type: {type(node)}")
                     return False, []
 
             # Map used mangled names back to original names
@@ -201,7 +196,6 @@ class ExpressionEvaluator:
             )  # Return unique sorted original names
 
         except SyntaxError as e:
-            # print(f"Debug: SyntaxError parsing '{processed_expression}': {e}")
             return False, []  # Invalid Python syntax after preprocessing
         except Exception as e:  # Catch other potential errors during validation
             print(f"Unexpected validation error: {e}")

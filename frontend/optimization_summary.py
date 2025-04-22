@@ -64,8 +64,6 @@ class OptimizationSummary(tk.Frame):
         self.figure.subplots_adjust(bottom=0.2)
         self.line, = self.ax.plot([], [])  
         self.line2, = self.ax.plot([], [], color="red", linestyle="--", label="Second Line")
-        #print("Test Rows Here:")
-        #print(testRows)
         xTargets=[]
         yTargets=[]
         for row in testRows:
@@ -88,9 +86,6 @@ class OptimizationSummary(tk.Frame):
         main_frame.grid_rowconfigure(2, weight=1)
         main_frame.grid_rowconfigure(3, weight=0)
         main_frame.grid_columnconfigure(0, weight=1)
-
-        
-
 
         self.queue = mp.Queue()
         self.thread = th.Thread(
@@ -129,12 +124,10 @@ class OptimizationSummary(tk.Frame):
         y_data = list(data[1])
         x_data = list(data[0])
         if isinstance(y_data, list):
-            #x_data = list(range(1, len(y_data) + 1))
             self.line.set_data(x_data, y_data)
             self.ax.relim()
             self.ax.autoscale_view()
             self.ax.set_ylim(min(self.minBound,min(y_data) - 1),max(self.maxBound,max(y_data) + 1))
-            #self.ax.set_xlabel("Time")
             self.canvas.draw()
 
     def close_window(self):
