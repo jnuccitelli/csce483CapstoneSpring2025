@@ -19,7 +19,7 @@ This document seeks to outline the developers’ thoughts on future improvements
 
 ## List
 - ### Extraneous File I/O Reduction
-   - Currently, every Xyce iteration outputs a file that is in turn parsed into memory for OptiXyce’s data operations.  This means every Xyce iteration has two associated file I/O operations.  Since I/O bound operations are notoriously slow, finding a way to eliminate this would most likely improve tool performance. (Maybe something like writing files to /dev/shm or memory mapped files)
+   - Currently, every Xyce iteration outputs a file that is in turn parsed into memory for XycLOps’s data operations.  This means every Xyce iteration has two associated file I/O operations.  Since I/O bound operations are notoriously slow, finding a way to eliminate this would most likely improve tool performance. (Maybe something like writing files to /dev/shm or memory mapped files)
 - ### Parallelism
    - Currently, all Xyce iterations are run serially.  Finding a way to run Xyce iterations in a parallel fashion, perhaps even utilizing GPUsm would certainly increase tool performance. Note: This is hard and could require major optimization loop changes since there does not appear to be a trivial way to parallelize SciPy least_squares.
 - ### Multi-platform Support
@@ -31,7 +31,7 @@ This document seeks to outline the developers’ thoughts on future improvements
 - ### Optimization Settings
    - Currently, the tool uses SciPy’s least_squares function for optimization workload with many key parameters hardcoded.  Making these parameters customizable by the user (with proper explanation) would make the tool much more responsive to the diverse use cases that entail different computational rigor for the optimization engine.
 - ### Model Compatibility
-   - Currently, OptiXyce can only work with certain circuit models.  Making the tool compatible with common circuit models and libraries (e.g. LTSpice default models) would greatly increase the tool’s reach and give users more freedom in their choice of schematic editor.
+   - Currently, XycLOps can only work with certain circuit models.  Making the tool compatible with common circuit models and libraries (e.g. LTSpice default models) would greatly increase the tool’s reach and give users more freedom in their choice of schematic editor.
 - ### Non-curvefit Optimization
-   - Currently, OptiXyce only accepts specified voltage curve input as an optimization criteria.  Adding more types of optimization criteria could increase applicable use cases.
+   - Currently, XycLOps only accepts specified voltage curve input as an optimization criteria.  Adding more types of optimization criteria could increase applicable use cases.
 
