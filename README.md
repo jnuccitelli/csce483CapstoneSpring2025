@@ -18,10 +18,6 @@ This project is developed as part of the CSCE 483 Capstone course at Texas A&M U
   * [Xyce Setup](#xyce-setup)
 * [Usage](#usage)
 * [Configuration](#configuration)
-* [Contributing](#contributing)
-* [Credits & Acknowledgements](#credits--acknowledgements)
-* [License](#license)
-* [Contact Information](#contact-information)
 
 ## About Xyclops
 
