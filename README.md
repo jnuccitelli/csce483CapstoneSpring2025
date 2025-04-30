@@ -1,4 +1,4 @@
-# Xyclops: A Xyce-Linked Circuit Optimizer
+# XycLOps: A Xyce-Linked Circuit Optimizer
 
 Xyclops is a software tool designed to perform circuit optimization by interfacing with the [Xyce Parallel Electronic Simulator](https://xyce.sandia.gov/). It aims to automate and streamline the process of finding optimal circuit parameters based on specified goals and constraints.
 
@@ -19,9 +19,9 @@ This project is developed as part of the CSCE 483 Capstone course at Texas A&M U
 * [Usage](#usage)
 * [Configuration](#configuration)
 
-## About Xyclops
+## About XycLOps
 
-[Describe Xyclops in more detail here. What kind of circuits does it optimize? What optimization techniques does it use or plan to use? What is the primary goal or benefit of using Xyclops? E.g., "Xyclops utilizes [Algorithm Name, e.g., gradient descent, genetic algorithms] to optimize [Type of Circuit, e.g., analog filter parameters, digital timing] by iteratively running Xyce simulations and adjusting circuit variables."]
+XycLOps is a GUI for circuit optimization, calling an existing Xyce binary on a user's system. A netlist can be provided, constraints can be set, and certain voltages in the circuit can be optimized to desired curves.
 
 ## Features
 
